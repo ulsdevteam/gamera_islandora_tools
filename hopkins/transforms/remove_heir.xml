@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0"
+   xmlns:mods="http://www.loc.gov/mods/v3"
+   xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+   <xsl:output indent="yes"/>
+   <xsl:strip-space elements="*"/>
+   <!-- IdentityTransform -->
+   <xsl:template match="/ | @* | node()">
+         <xsl:copy>
+           <xsl:apply-templates select="@* | node()" />
+         </xsl:copy>
+   </xsl:template>
+   <!-- if both cartographics and hierarchicalGeographic appear in the same subject, break them out -->
+   <xsl:template match="mods:subject/mods:hierarchicalGeographic" />
+   <xsl:template match="node()|@*">
+     <xsl:copy>
+       <xsl:apply-templates select="node()|@*"/>
+     </xsl:copy>
+</xsl:template>
+   <xsl:template match="*[not(@*|*|comment()|processing-instruction()) and normalize-space()='']"/>
+</xsl:stylesheet>
