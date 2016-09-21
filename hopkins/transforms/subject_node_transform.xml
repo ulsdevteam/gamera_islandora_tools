@@ -1,0 +1,15 @@
+<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0"
+   xmlns:mods="http://www.loc.gov/mods/v3"
+   xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+   <!-- IdentityTransform -->
+   <xsl:template match="/ | @* | node()">
+         <xsl:copy>
+           <xsl:apply-templates select="@* | node()" />
+         </xsl:copy>
+   </xsl:template>
+   <!-- if both cartographics and hierarchicalGeographic appear in the same subject, break them out -->
+   <xsl:template match="mods:subjectxxx">
+      <mods:subject><xsl:apply-templates select="@* | node()" /></mods:subject>
+   </xsl:template>
+</xsl:stylesheet>

@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xsl:stylesheet version="1.0"
+   xmlns:mods="http://www.loc.gov/mods/v3"
+   xmlns:copyrightmd="http://www.cdlib.org/inside/diglib/copyrightMD"
+   xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+   <xsl:output method="text" omit-xml-declaration="yes" />
+   <!-- if both cartographics and hierarchicalGeographic appear in the same subject, break them out -->
+   <xsl:template match="/">
+     <xsl:for-each select="/mods:mods/mods:subject">
+       <xsl:text>New subject
+</xsl:text>    
+       <xsl:for-each select="node()">
+         <xsl:value-of select="local-name(.)"/>
+         <xsl:text>
+</xsl:text>
+       </xsl:for-each>
+     </xsl:for-each>
+   </xsl:template>
+</xsl:stylesheet>

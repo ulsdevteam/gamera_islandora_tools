@@ -4,7 +4,7 @@ set_time_limit(0);
 
 // Run this from the http://dev.gamera.library.pitt.edu/devel/php, execute the following line of code to include this unit.
 //
-// --->  include_once('/usr/local/src/islandora_tools/hopkins/process.php');
+// --->  include_once('/usr/local/src/islandora_tools/hopkins/process_csv.php');
 //
 
 // This array defines the mappings for the various fields provided in the hopkins_metadata_update_data.csv spreadsheet.
@@ -29,12 +29,12 @@ define('LOGFILE', '/usr/local/src/islandora_tools/hopkins/logfile');
 
 // If this variable is set to any PID that is in the spreadsheet, all items above it will not be processed -- making it 
 // the first PID to be processed;
-// $first_pid = 'pitt:pitt:01v01p20';
-$first_pid = NULL;
+$first_pid = 'pitt:01v01ind';
+// $first_pid = NULL;
 
 // Set this variable if we only need to process a specific number of items from the spreadsheet.
-// $process_exactly_howmany = 2;
-$process_exactly_howmany = PHP_INT_MAX;
+$process_exactly_howmany = 1;
+// $process_exactly_howmany = PHP_INT_MAX;
 
 
 $last_container_created_id = -1;
@@ -44,7 +44,7 @@ $headings_row = array(array_shift($file));
 $headings = array_pop(array_map('str_getcsv', $headings_row));
 $identifier_column_idx = array_search('identifier', $headings);
 $csv = array_map('str_getcsv', $file);
-$max_geo_idx = 5;
+$max_geo_idx = 2;
 
 $s = "";
 $i = 0;
@@ -103,7 +103,7 @@ function process_changes($islandora_object, $record_data, $mods_mappings) {
   $mods_file = $mods->getContent($tempFilename);
 
   $mods_file = implode("", file($tempFilename));
-  //  $s .= '</pre><hr><h3>original MODS</h3><pre style="color:#227">' . htmlspecialchars($mods_file);
+  $s .= '</pre><hr><h3>original MODS</h3><pre style="color:#227">' . htmlspecialchars($mods_file);
 
   // With a DOMDocument, parse the MODS xml using the xpaths needed for each field.
   $namespace = 'http://www.loc.gov/mods/v3';
@@ -143,13 +143,13 @@ function process_changes($islandora_object, $record_data, $mods_mappings) {
     }
     $s .= "</hr>";
   }
-  $tempFilename = tempnam("/tmp", "MODS_xml_updated_");
   $xml = $doc->saveXML();
-  for ($i = 1; $i <= $max_geo_idx; $i++) {
-    $replacements = array('hierarchicalGeographic' . $i, 'county' . $i, 'city' . $i, 'citySection' . $i);
-    $vals = array('hierarchicalGeographic', 'county', 'city', 'citySection');
+  for ($i = 0; $i <= $max_geo_idx; $i++) {
+    $replacements = array('hierarchicalGeographic' . $i . '>', 'county' . $i . '>', 'city' . $i . '>', 'citySection' . $i . '>');
+    $vals = array('hierarchicalGeographic>', 'county>', 'city>', 'citySection>');
     $xml = str_replace($replacements, $vals, $xml);
   }
+  $s .= '<div style="color:green"><pre>' . htmlspecialchars($xml) . '</pre></div>';
 
   // This is essentially the code that executes when a user clicks "Updage" from an XML MODS form.
   // It seems that we do not explicitly need to call islandora_add_object() here.
@@ -184,8 +184,6 @@ function _find_metadatafield_idxs($metadata_field, $mods_mappings) {
 }
 
 function _add_full_xpath($doc, $xpath, $xmap, $metadata_value, $namespace, $geo_idx) {
-  // error_log('in _add_full_xpath, ' . $xmap . ' ~ ' . $geo_idx);
-  // $s = '<h3>' . $xmap ."</h3>";
   // ltrim this because it will prevent the first element from being empty.
   $parts = explode("/", ltrim($xmap, '/'));
   $partial_xpath = '';
@@ -195,23 +193,31 @@ function _add_full_xpath($doc, $xpath, $xmap, $metadata_value, $namespace, $geo_
   foreach ($parts as $part_idx => $part) {
     if ($part) {      
       $partial_xpath .= '/' . $part;
+$s .= '<h2>' . $partial_xpath . '</h2>';
       $results = $xpath->query($partial_xpath);
-      $existed = ($results->item(0));
+//      $existed = (($results->item(0)) ? TRUE : FALSE);
       $nodeValue = '';
       foreach ($results as $result) {
         $nodeValue = htmlspecialchars(trim($result->nodeValue));
-        // $s .= '{{{'.$partial_xpath ."}}}<br>";
+        $s .= '{{{'.$partial_xpath . ' | ' . $nodeValue . "}}}<br>";
         /* if ($partial_xpath == '/mods:mods/mods:originInfo/mods:dateOther/@type="display"') {
            $s .= '<div style="padding:10px">'.$nodeValue.'</div>';
         } */
       }
       $trimmed = substr($nodeValue, 0, 30) . ((strlen($nodeValue) > 30) ? '... ' : '');
 
-      $s .= '<span style="color:' . (($existed) ? 'green' : 'red') . '">' . $partial_xpath . " [" . $metadata_value . "]</span><br>";
+$existed = false;
+if ($results->item(0)) {
+ foreach ($results as $result) {
+    $existed = true;
+$s .= $result->nodeValue . "<hr>";
+  }
+}
+      $s .= '<span style="color:' . (($existed) ? 'green' : 'red') . '">partial_xpath = ' . $partial_xpath . ', xmap = ' . $xmap . " [" . $metadata_value . "]</span><br>";
       // DETERMINE whether or not this is creating an empty node, a node with a value, or a node with a value and an attribute.
       $set_value = ($metadata_value && ($part_idx == $total_parts - 1));
       if (!$existed || !is_null($geo_idx)) {
-        $s .= '<h3>' . $partial_xpath . ' does not exist!  Will need to CREATE or UPDATE' . 
+        $s .= '<h3>' . $partial_xpath . ' [existed,geo_idx] = ['.(($existed) ? 'TRUE' : 'FALSE').','. (is_null($geo_idx) ? 'NULL' : $geo_idx).']  Will need to CREATE or UPDATE' . 
           (($set_value) ? ' and set value to "' . $metadata_value . '"' : '') . 
           '.</h3>';
         $s .= '<div style="border:1px solid black;padding:10px;">' . _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpath, $namespace, $metadata_value, $results, $set_value, $geo_idx) . "</div>";
@@ -225,7 +231,6 @@ function _add_full_xpath($doc, $xpath, $xmap, $metadata_value, $namespace, $geo_
           $s .= '<div style="border:1px solid black;padding:10px;">' . _update_existing_tag($doc, $partial_xpath, $last_found_parent, $xpath, $namespace, $metadata_value, $results, $set_value) . "</div>";
         }
       }
-
       // $s .= '<span style="color:#877"><b>part_idx[' . ($part_idx + 1) . '/' . $total_parts . '] q ' . $partial_xpath . '</b></span><br>';
       $last_found_parent = $partial_xpath;
     }
@@ -241,14 +246,14 @@ function _update_existing_tag($doc, $partial_xpath, $last_found_parent, $xpath, 
     $nodeValue = FALSE;
     $s = '';
     foreach ($parent_node_results as $element) {
-      $nodeValue = trim($element->nodeValue);
+      $nodeValue = htmlspecialchars(trim($element->nodeValue));
     }
     if ($nodeValue) {
       $results = $xpath->query($partial_xpath);
       foreach ($results as $result) {
         $s .= '<div style="padding:4px;border: 3px solid ' . (($set_values) ? 'green' : 'red') . '"><span style="color:#964">updating node value ' . $metadata_value . ', was "' . trim($result->nodeValue) . '"</span></div>';
         // $s .= '<i>'.trim($result->nodeValue) ."</i><br>";
-        $result->nodeValue = $metadata_value;
+        $result->nodeValue = htmlspecialchars($metadata_value);
       }
     }
   }
@@ -258,41 +263,49 @@ function _update_existing_tag($doc, $partial_xpath, $last_found_parent, $xpath, 
 function _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpath, $namespace, $metadata_value, $parent_node_results, $set_value, $geo_idx) {
   global $last_container_created_id, $max_geo_idx;
   $node_part = ltrim(str_replace($last_found_parent, '', $partial_xpath), '/');
-
+  $s = 'geo_idx = ' . $geo_idx . ', last_found_parent = ' . $last_found_parent . ', node_part = ' . $node_part . ', partial_xpath = ' . $partial_xpath . "\n";
   if (!is_null($geo_idx)) {
     if ($geo_idx > $max_geo_idx) {
       $max_geo_idx = $geo_idx;
     }
-    $s = '<div style="padding: 5px;border: 1px dotted black;">is_geo_field -- path = ' . $last_found_parent.' // node_part = ' . $node_part . '<br>';
-    $s.= '<h3 style="color:green">' . $geo_idx . '</h3>';
+    $s.= '<div style="padding: 5px;border: 1px dotted black;">is_geo_field -- path = ' . $last_found_parent.' // node_part = ' . $node_part . '<br>';
+    $s.= '<h3 style="color:green">geo_idx = ' . $geo_idx . '</h3>' . "\n";
     if (!(strstr($node_part, 'hierarchicalGeographic'))) {
       $last_found_parent = str_replace('hierarchicalGeographic', 'hierarchicalGeographic' . $geo_idx, $partial_xpath);
       //  mods:citySection2 under /mods:mods/mods:subject/mods:hierarchicalGeographic2/mods:citySection
       $nonNumeric_node_part = '/' . preg_replace('/[0-9]+/', '', $node_part);
-      $last_found_parent = rtrim(str_replace($node_part, '', $last_found_parent), '/');
+      $last_found_parent = ($node_part <> $last_found_parent) ? rtrim(str_replace($node_part, '', $last_found_parent), '/') : $node_part;
     }
     else {
+      $s .= '!!!!!!!!!!!!!!!!! node_part = ' . $node_part . "<hr>";
     }
     if (($last_container_created_id <> $geo_idx) && (strstr($node_part, 'hierarchicalGeographic')) || !strstr($node_part, 'hierarchicalGeographic')) {
+      $s .= 'last_found_parent = ' . $last_found_parent . "\n";
       $results = $xpath->query($last_found_parent);
-      if (is_object($results) && ((strstr($node_part, 'hierarchicalGeographic') || strstr($last_found_parent, 'hierarchicalGeographic')))) {
+      if (is_object($results)) { //  && ((strstr($node_part, 'hierarchicalGeographic') || strstr($last_found_parent, 'hierarchicalGeographic')))) {
         // Parent item found
-        $node_part .= $geo_idx;
-        $verb = ($nodeValue) ? 'UPDATING' : 'ADDING';
-        // $s .= '<span style="color:#292">('. $nodeValue.') ' . $verb . ' ' . $node_part . ' :: ' . $metadata_value . " via last_found_parent query " . $last_found_parent. "</span><br>";
+        // ONLY add the geo_idx if the field is one of the known geo fields
+        if (strstr($node_part, 'mods:hierarchicalGeographic') || strstr($node_part, 'mods:county') || 
+          strstr($node_part, 'mods:city')) {
+          $node_part .= $geo_idx;
+          $last_container_created_id = $geo_idx;
+        }
         $s .= '<span style="color:#964">making child node named &lt;' . $node_part . '&gt;' . (($set_value) ? ' and setting value to ' . $metadata_value : '') . '</span><br>';
         $child = $doc->createElementNS($namespace, $node_part);
-        if (!(strstr($node_part, 'hierarchicalGeographic'))) {
-          $child->nodeValue = $metadata_value;
+        if (strstr($node_part, 'mods:hierarchicalGeographic') == '' && strstr($node_part, 'mods:subject') == '') {
+          $child->nodeValue = htmlspecialchars($metadata_value);
         }
         foreach ($results as $result) {
+          $s.= 'top adding child result (' . $node_part .")\n";
           $result->appendChild($child);
         }
-        $last_container_created_id = $geo_idx;
       }
       else {
-        $s .= "skipping " . $node_part . ', ' . $last_found_parent . "<br>";
+        $s .= "skipping " . $last_found_parent . ' + ' . $node_part . '[is_object]' . (is_object($results) ? 'TRUE' : 'FALSE') . "<br>";
       }
+    }
+    else {
+      $s .= '<div style="color:red;border:5px solid green">last_container = ' . $last_container_created_id . ', geo_idx = ' . $geo_idx . ', node_part = ' . $node_part ."</div>";
     }
     $s .= "</div>";
     return $s;
@@ -317,6 +330,7 @@ function _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpa
       $s .= 'Setting on ' . $last_found_parent . ' -- ' . $attr_name . ' = ' . $attr_value ."<br>";
       $child->setAttribute($attr_name, $attr_value);
       foreach ($results as $result) {
+        $s.= 'mid adding child result ' ."\n";
         $result->appendChild($child);
       }  
     }
@@ -338,8 +352,9 @@ function _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpa
         $s .= '<span style="color:#964">making child node named &lt;' . $node_part . '&gt;' . (($set_value) ? ' and setting value to ' . $metadata_value : '') . '</span><br>';
         $child = $doc->createElementNS($namespace, $node_part);
         if ($set_value) { 
-          $child->nodeValue = $metadata_value;
+          $child->nodeValue = htmlspecialchars($metadata_value);
         }
+        $s.= 'low adding child result ' ."\n";
         $results->item(0)->appendChild($child);
       }
       // UPDATE EXISTING NODE
@@ -348,7 +363,7 @@ function _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpa
         foreach ($results as $result) {
           $s .= '<span style="color:#964">updating node value ' . $metadata_value . ', was "' . trim($result->nodeValue) . '"</span><br>';
           $s .= '<i>'.trim($result->nodeValue) ."</i><br>";
-          $result->nodeValue = $metadata_value;
+          $result->nodeValue = htmlspecialchars($metadata_value);
         }      
       }
     }
