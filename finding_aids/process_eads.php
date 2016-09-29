@@ -62,94 +62,70 @@ if (!@$marc_DOM->load($marc_file)) {
 $missing = $finding_aids = array();
 $i = 0;
 foreach ($ead_files as $idx => $ead) {
+  $s0 = '';
   $ead_name = str_replace('-ead.xml', '', $ead);
   $marc_filename = str_replace('-ead.xml', '-marc.xml', $ead);
   if ($i < $process_exactly) {
-  //  $s1 = 'marc_filename = ' . $marc_filename;
     $marc = NULL;
     $ead_id = _get_ead_id($ead);
-    $s .= 'given EAD file "' . $ead . '", ead_id = ' . $ead_id . "\n";
+    //# uncomment next line for SINGLE_ITEM
+    // if ($ead_id == 'US-PPiU-ua402004') {
+    $s0 .= 'given EAD file "' . $ead . '", ead_id = ' . $ead_id . ' ';
     $s2 = 'given EAD file "' . $ead . '", ead_id = ' . $ead_id;
-//  create MARC from the large marc container xml
-    $parts = explode(".", $ead_name);
-  // Generate the fuzzy EAD filename match to search for in the large MARC file.
-    if (count($parts) > 1) {
-      if (count($parts) == 2) {
-        $xpath_value_ead_name = $parts[0] . ' ' . $parts[1];
-      } elseif (count($parts) == 3) {
-        $xpath_value_ead_name = $parts[0] . ' ' . $parts[1] . ':' . $parts[2];
-      } elseif (count($parts) == 4) {
-        $xpath_value_ead_name = $parts[0] . ' ' . $parts[1] . ':' . $parts[2];
-//      $xpath_value_ead_name = $parts[0] . ' ' . $parts[1] . ':' . $parts[2] . '-' . $parts[3];
-      } elseif (count($parts) > 4) {
-        $xpath_value_ead_name = $parts[0] . ' ' . $parts[1] . ':' . $parts[2];
-/*      $dash_parts = $parts;
-      // Shift off 3 elements for the implode to work on the remaining items above 2
-      array_shift($dash_parts);array_shift($dash_parts);array_shift($dash_parts);
-      $xpath_value_ead_name = $parts[0] . ' ' . $parts[1] . ':' . $parts[2] . '-' . implode("-", $dash_parts);
-*/
-      }
     // since this is not xpath 2.0, need to use string-lengths to fake the "ends-with"
-      $marc_query = '/m:collection/m:record[m:datafield[@tag="856"]/m:subfield[@code="u"]["' . $ead_id . '" = substring(., string-length(.)-string-length("' . $ead_id . '")+1)]]';
-//    $marc_query = '/m:collection/m:record[m:datafield[@tag="099"]/m:subfield[@code="a"][starts-with(.,"' . $starts_with . '") and ends-with(.,"' . $ends_with . '")]]';
-//    $marc_query = '/m:collection/m:record[m:datafield[@tag="099"]/m:subfield[@code="a"]="'. $xpath_value_ead_name .'"]';
-//    echo $ead_name . "\n";
-      if (_save_marc($marc_query, $marc_DOM, $marc_filename)) {
+    $marc_query = '/m:collection/m:record[m:datafield[@tag="856"]/m:subfield[@code="u"]["' . $ead_id . '" = substring(., string-length(.)-string-length("' . $ead_id . '")+1)]]';
+    if ($saved_marc_xml = _save_marc($marc_query, $marc_DOM, $marc_filename)) {
+      $marc = $marc_filename;
+      $lines_good[] = $s2;
+      $lines_good[] = 'query = ' . $marc_query;
+      $s0 .= 'MARC found for EAD : ' . $ead_id . ' (' . $saved_marc_xml . ')';
+      $count_good++;
+    } else {
+      // look for the matching MARC file in the MARC_FOLDER
+      $AT_marc_filename = MARC_FOLDER . '/' . $marc_filename;
+      if (file_exists($AT_marc_filename)) {
+        $s0 .= 'found matching MARC by filename : ' . $AT_marc_filename . ' ';
+        copy($AT_marc_filename, MARC_DERIVED_FOLDER . '/' . $marc_filename);
         $marc = $marc_filename;
         $lines_good[] = $s2;
-        $lines_good[] = $xpath_value_ead_name;
-        $lines_good[] = 'query = ' . $marc_query;
-        $s .= 'MARC found for EAD : ' . $ead_id . "\n";
+        $s0 .= '_save_marc did not find anything for the query ' . $marc_query . ' but found matching MARC file : ' . $marc_filename . ' ';
         $count_good++;
       } else {
-        // look for the matching MARC file in the MARC_FOLDER
-        $AT_marc_filename = MARC_FOLDER . '/' . $marc_filename;
-        if (file_exists($AT_marc_filename)) {
-          $s .= 'found matching MARC by filename : ' . $AT_marc_filename . "\n";
-          copy($AT_marc_filename, MARC_DERIVED_FOLDER . '/' . $marc_filename);
-          $marc = $marc_filename;
-          $lines_good[] = $s2;
-          $s .= '_save_marc did not find anything for the query ' . $marc_query . ' but found matching MARC file : ' . $marc_filename . "\n";
-          $count_good++;
-        } else {
-          $lines_bad[] = $s2;
-          $s .= '_save_marc did not find anything for the query ' . $marc_query . ' AND COULD NOT FIND matching MARC by filename : ' . $AT_marc_filename . "\n";
-          $count_bad++;
-        }
+        $marc = NULL;
+        $lines_bad[] = $s2;
+        $s0 .= '_save_marc did not find anything for the query ' . $marc_query . ' AND COULD NOT FIND matching MARC by filename : ' . $AT_marc_filename . ' ';
+        $count_bad++;
       }
     }
-    else {
-      $s .= $ead_name . ' could not be found in the marc' . "\n";
-      $lines_bad[] = $s2;
-      $lines_bad[] = $ead_name . ' could not be found in the marc';
-      $count_bad++;
-    }
-/*  $marc = (!(array_search($marc_filename, $marcs) === FALSE) ? $marc_filename : NULL);
-  if (!$marc) {
-    $missing[] = $ead;
-  } */
     $ead_marc = array('ead' => $ead,
                       'marc' => $marc);
-    $s .= '[' . $i . '] ' . process_finding_aid_xml($ead_id, $ead_marc, $repository, FINDING_AIDS_COLLECTION, $solr) . "\n";
+    if (!is_null($marc)) {
+      $s0 .= '[' . $i . '] ' . process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) . ' ';
+    }
+    //# uncomment next line for SINGLE_ITEM
+    // }
   }
   else {
-    $s .= '[' .$i . '] skipped (' . $ead_name . ', ' . $marc_filename . ')' . "\n";
+    $s0 .= '[' .$i . '] skipped (' . $ead_name . ', ' . $marc_filename . ')' . ' ';
   }
   $i++;
+  $s .= $s0;
+  if ($s0) {
+    error_log($s0);
+  }
 }
+echo "<html><head><title>test</title></head><body>";
 echo "<b>" . number_format($count_good) . " good MARC ~ EAD</b></br>";
 echo "<b>" . number_format($count_bad) . " bad MARC ~ EAD</b></br>";
 
 echo "<pre>";
-die(implode("\n", $lines_good) . "</pre><hr><pre>" . implode("\n", $lines_bad) . "<hr>" . $s);
+die(implode('
+', $lines_good) . "</pre><hr><pre>" . implode('
+', $lines_bad) . "<hr>" . $s);
 
 
-//echo 'Missing MARC files ' . "\n" . implode("\n", $missing) . "\n-------------------------------------------\n";
-// echo 'Files ' . "\n" . print_r($finding_aids, true) . "\n-------------------------------------------\n";
 
-
-function process_finding_aid_xml($ead_id, $ead_marc, $repository, $collection, $solr) {
-  module_load_include('inc', 'islandora_solution_pack_manuscript', 'includes/ead_upload.form');
+function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $ead = EAD_FOLDER . '/' . $ead_marc['ead'];
   $marc = MARC_DERIVED_FOLDER . '/' . $ead_marc['marc'];
 
@@ -158,25 +134,13 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $collection, $
   if (!@$doc0->load($ead) || (!@$doc0->schemaValidate(dirname(__FILE__) .'/schema/ead.xsd'))) {
     return 'ERROR: Schema did not validate for this file : ' . $ead . "\n";
   }
-
   $doc_xml = $doc0->saveXML();
 
   // use the $ead_id to make the PID
   $id = 'pitt:' . $ead_id;
 
-  // Get the next Id from the system under the "finding-aid" namespace.
-/*  $id = _get_existing_PID(str_replace(array('-ead.xml', '_ead.xml'), '', $ead_marc['ead']), $solr);
-  if (!$id) {
-    $id = 'pitt:' . str_replace(":", ".", $repository->getNextIdentifier('finding-aid'));
-  }
-*/
-/*
-  // Get the Title field for setting the object ID to values like "AIS.1997.36"
-  $ead_num_value = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
-  $id = 'pitt:' . (($ead_num_value) ? $ead_num_value : str_replace(":", ".", str_replace(array('-ead.xml', '_ead.xml'), '', $ead_marc['ead'])));
-*/
-
   $object = islandora_object_load($id);
+
   if (!$object) {
     $object = $repository->constructObject($id);
     $object_existed = FALSE;
@@ -186,18 +150,18 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $collection, $
   }
 
   // Get the title from the MARC file
-  $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper/d:num');
-  $object->label = ($title) ? $title : 'EAD Title';
+  $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
+  $object->label = ($title) ? $title : $ead_id;
 
-  // Setting the object's models value should create a RELS-EXT	
+  // Setting the object's models value should create a RELS-EXT
   $object->models = 'islandora:findingAidCModel';
 
-  // Setting the isMemberOfCollection
-  if ($collection) { 
-    $object->relationships->add(FEDORA_RELS_EXT_URI, 'isMemberOfCollection', $collection);
+  // Setting the isMemberOfCollection - for a single collection
+  if (FINDING_AIDS_COLLECTION <> '') {
+    _add_relationship_if_not_exists($object, 'isMemberOfCollection', FINDING_AIDS_COLLECTION, FEDORA_RELS_EXT_URI);
   }
-
-  add_site_mappings($object, $ead_marc['ead']);
+  // These site and collection mappings are based on the ead filename.
+  add_site_and_collection_mappings($object, $ead_marc['ead']);
 
   $dsid = 'EAD';
   $datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
@@ -229,16 +193,18 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $collection, $
   if (!$object_existed) {
     $repository->ingestObject($object);
   }
-  // $object->relationships->add(FEDORA_RELS_EXT_URI, 'isMemberOf', $finding_aid->id);
 
-  return 'EAD = ' . $ead . "\n" .
-         'MARC = ' . $marc . "\n" . 
-         'PID = ' . $object->id . "\n";
+  return 'EAD = ' . $ead . ', ' .
+         'MARC = ' . $marc . ', ' .
+         'PID = ' . $object->id;
 }
 
 function _get_xpath_nodeValue($doc_xml, $query) {
   $doc = new DOMDocument();
-  $doc->loadXML($doc_xml);
+  if (!$doc->loadXML($doc_xml)) {
+    die('in _get_xpath_nodeValue, could not load XML - ' . htmlspecialchars(substr($doc_xml, 0, 99)) . '...');
+    return '';
+  }
   $xpath = new DOMXPath($doc);
   $xpath->registerNamespace('d', 'urn:isbn:1-931666-22-9');
   $results = $xpath->query($query);
@@ -262,16 +228,27 @@ function _get_files($path, $filename_wildcard = '') {
   return $results;
 }
 
-function add_site_mappings($object, $ead_filename) {
+function add_site_and_collection_mappings($object, $ead_filename) {
   $site_ead_maps = array(
     // HistPitt
-    'info:fedora/pitt:site.historic-pittsburgh'=>
+    'pitt:site.historic-pittsburgh'=>
       array('AIS', 'DAR', 'UE'),
     // Documenting
-    'info:fedora/pitt:site.documenting-pitt'=>
+    'pitt:site.documenting-pitt'=>
       array('UA'),
     // Digital
-    'info:fedora/pitt:site.uls-digital-collections' =>
+    'pitt:site.uls-digital-collections' =>
+      array('AIS', 'ASP', 'CAM', 'CASEY', 'CTC', 'DAR', 'SC', 'UA', 'UE'));
+
+  $collection_ead_maps = array(
+    // HistPitt
+    'pitt:fa.histpitt'=>
+      array('AIS', 'DAR', 'UE'),
+    // Documenting
+    'pitt:fa.documenting'=>
+      array('UA'),
+    // Digital
+    'pitt:fa.digital' =>
       array('AIS', 'ASP', 'CAM', 'CASEY', 'CTC', 'DAR', 'SC', 'UA', 'UE'));
 
   // skipping for now: AACCWP, EUDC, FFAL, HAMM, LATINAMER,
@@ -279,9 +256,31 @@ function add_site_mappings($object, $ead_filename) {
   foreach ($site_ead_maps as $site => $site_mappings) {
     foreach ($site_mappings as $site_mapping) {
       if ($site_mapping == $prefix) {
-        $object->relationships->add(MEMBEROFSITE_NAMESPACE, 'isMemberOfSite', $site);
+        _add_relationship_if_not_exists($object, 'isMemberOfSite', $site, MEMBEROFSITE_NAMESPACE);
       }
     }
+  }
+  foreach ($collection_ead_maps as $collection => $collection_mappings) {
+    foreach ($collection_mappings as $collection_mapping) {
+      if ($collection_mapping == $prefix) {
+        _add_relationship_if_not_exists($object, 'isMemberOfCollection', $collection, FEDORA_RELS_EXT_URI);
+      }
+    }
+  }
+}
+
+function _add_relationship_if_not_exists($object, $relationship, $value, $namespace) {
+  // get the current relationships
+  $rels = $object->relationships->get($namespace, $relationship);
+  $existed = FALSE;
+  foreach ($rels as $rel) {
+    $existed |= (isset($rel['object']['value']) && $rel['object']['value'] == $value);
+  }
+  if (!$existed) {
+    $object->relationships->add($namespace, $relationship, $value);
+  }
+  if ($relationship == 'isMemberOfSite') {
+    $object->relationships->remove($namespace, 'isMemberOfSite', 'info:fedora/' . $value);
   }
 }
 
@@ -294,9 +293,12 @@ function _get_ead_id($ead) {
 
     $query = '//d:eadid';
     $results = $xpath->query($query);
-    foreach ($results as $result) { 
+    foreach ($results as $result) {
       $nodeValue = trim($result->nodeValue);
     }
+  }
+  else {
+    die('in _get_ead_id, could not load - ' . EAD_FOLDER . '/' . $ead);
   }
   return $nodeValue;
 }
@@ -306,19 +308,15 @@ function _save_marc($query, $marc_DOM, $marc_filename) {
   $xpath->registerNamespace('m', 'http://www.loc.gov/MARC21/slim');
   $results = $xpath->query($query);
   $retval = FALSE;
-//  if ($results) {
-    foreach ($results as $result) {
-      $retval = TRUE;
-      echo MARC_DERIVED_FOLDER . '/' . $marc_filename . "\n";
-      file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
-    }
-//  }
+  foreach ($results as $result) {
+    $retval = TRUE;
+    $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
+  }
   return $retval;
 }
 
-function _wrap($xml) { 
+function _wrap($xml) {
   $dom = new DOMDocument();
-//   $dom->registerN
   $node = $dom->importNode($xml, TRUE);
   $dom->appendChild($node);
 
@@ -379,6 +377,3 @@ function doMODSTransform($marc) {
   return $filename;
 }
 
-function _get_existing_PID($pid, $solr) {
-  echo $solr . "<hr>" . $pid ."\n\n";
-}
