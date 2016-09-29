@@ -10,37 +10,37 @@
 
 $DATASTREAMS = array();
 $DATASTREAMS['MODS'] = array(
-		'Label' => 'MODS Record',
-		'mimetype' => 'text/xml',
-		);
+                'Label' => 'MODS Record',
+                'mimetype' => 'text/xml',
+                );
 $DATASTREAMS['DC'] = array(
-		'Label' => 'DC Record',
-		'mimetype' => 'text/xml',
-		);
+                'Label' => 'DC Record',
+                'mimetype' => 'text/xml',
+                );
 $DATASTREAMS['TN'] = array(
-		'mimetype' => 'image/jpeg',
-		);
+                'mimetype' => 'image/jpeg',
+                );
 $DATASTREAMS['TN_LARGE'] = array(
-		'mimetype' => 'image/jpeg',
-		);
+                'mimetype' => 'image/jpeg',
+                );
 $DATASTREAMS['DESC'] = array(
-		'Label' => 'DESC Record',
-		'mimetype' => 'text/html',
-		);
+                'Label' => 'DESC Record',
+                'mimetype' => 'text/html',
+                );
 $DATASTREAMS['OBJ'] = array(
-		'Label' => 'OBJ',
-		);
+                'Label' => 'OBJ',
+                );
 $DATASTREAMS['COLLECTION_POLICY'] = array(
-		'Label' => 'Colleciton Policy',
-		'mimetype' => 'text/xml',
-		);
+                'Label' => 'Colleciton Policy',
+                'mimetype' => 'text/xml',
+                );
 $DATASTREAMS['RELS-EXT'] = array(
-		'Label' => 'External Relations',
-		'mimetype' => 'application/rdf+xml',
-		);
+                'Label' => 'External Relations',
+                'mimetype' => 'application/rdf+xml',
+                );
 
 
-	
+
 
 
 /*
@@ -125,10 +125,10 @@ function delete_isMemberOfCollection($object,$collection) {
 
 // isPageOf
 function add_isPageOf($object,$book) {
-	$predicate_uri = 'http://islandora.ca/ontology/relsext#';
-	$predicate = 'isPageOf';
-	$type = 'TRUE';
-	addRelationship($object,$predicate_uri,$predicate,$book,$type);
+        $predicate_uri = 'http://islandora.ca/ontology/relsext#';
+        $predicate = 'isPageOf';
+        $type = 'TRUE';
+        addRelationship($object,$predicate_uri,$predicate,$book,$type);
 }
 
 function delete_isPageOf($object,$book) {
@@ -141,7 +141,7 @@ function delete_isPageOf($object,$book) {
 
 // isPageNumber
 function add_isPageNumber($object,$number) {
-	$predicate_uri = 'http://islandora.ca/ontology/relsext#';
+        $predicate_uri = 'http://islandora.ca/ontology/relsext#';
         $predicate = 'isPageNumber';
         $type = 'TRUE';
         addRelationship($object,$predicate_uri,$predicate,$number,$type);
@@ -157,7 +157,7 @@ function delete_isPageNumber($object,$number) {
 
 // isSequenceNumber
 function add_isSequenceNumber($object,$number) {
-	$predicate_uri = 'http://islandora.ca/ontology/relsext#';
+        $predicate_uri = 'http://islandora.ca/ontology/relsext#';
         $predicate = 'isSequenceNumber';
         $type = 'TRUE';
         addRelationship($object,$predicate_uri,$predicate,$number,$type);
@@ -256,13 +256,13 @@ function delete_hasModel($object,$model) {
 }
 
 function get_hasModel($object) {
-	$predicate_uri = 'info:fedora/fedora-system:def/model#';
-	$predicate = 'hasModel';
+        $predicate_uri = 'info:fedora/fedora-system:def/model#';
+        $predicate = 'hasModel';
         $relationships = $object->relationships;
-	$type = 'TRUE';
-	$junk = '';
+        $type = 'TRUE';
+        $junk = '';
         $hasModel = $relationships->get($predicate_uri,$predicate,$junk,$type);
-	return($hasModel);
+        return($hasModel);
 }
 
 
@@ -271,107 +271,107 @@ function get_hasModel($object) {
 */
 
 function setupSolr() {
-	// Setup Solr Connection.
+        // Setup Solr Connection.
         $solr_url = get_config_value('solr','url');
         $solr_proxy_username = get_config_value('solr','proxy_username');
         $solr_proxy_password = get_config_value('solr','proxy_password');
         $solr = str_replace('http://', "http://$solr_proxy_username:$solr_proxy_password@", $solr_url);
-	return($solr);
+        return($solr);
 }
 
 function getPagePIDs($pid) {
-	$result = array();
-	$pid_in = str_replace(':', '\:', $pid);
+        $result = array();
+        $pid_in = str_replace(':', '\:', $pid);
 
-	// Setup Solr Connection.
-	$solr = setupSolr();
+        // Setup Solr Connection.
+        $solr = setupSolr();
 
-	// Solr Query...
-	$json = file_get_contents("$solr/select?q=RELS_EXT_isMemberOf_uri_s:*$pid_in&fl=PID&wt=json&indent=yes&sort=PID+asc&rows=3000");
-	if($json === FALSE) {
-		print "Error talking with Solr.\n";
-		exit(1);
-	} else {
-		$obj = json_decode($json);
-		$num = $obj->response->numFound;
-		$result['total'] = $num;
-		$pids = array();
-		foreach ($obj->response->docs as $item)
-		{
-			array_push($pids, $item->PID);
-		}
-		$result['pids'] = $pids;
-		return($result);
-	}	
+        // Solr Query...
+        $json = file_get_contents("$solr/select?q=RELS_EXT_isMemberOf_uri_s:*$pid_in&fl=PID&wt=json&indent=yes&sort=PID+asc&rows=3000");
+        if($json === FALSE) {
+                print "Error talking with Solr.\n";
+                exit(1);
+        } else {
+                $obj = json_decode($json);
+                $num = $obj->response->numFound;
+                $result['total'] = $num;
+                $pids = array();
+                foreach ($obj->response->docs as $item)
+                {
+                        array_push($pids, $item->PID);
+                }
+                $result['pids'] = $pids;
+                return($result);
+        }
 }
 
 function getPIDsOfModel($model) {
-	$result = array();
-	// Setup Solr Connection.
-	$solr = setupSolr();
-	// Solr Query...
-	$json = file_get_contents("$solr/select?q=RELS_EXT_hasModel_uri_s:*$model&fl=PID&wt=json&indent=yes&sor=PID+asc&rows=2147483647");
-	if($json === FALSE) {
-		print "Error Talking with Solr.\n";
-		exit(1);
-	} else {
-		$obj = json_decode($json);
-		$num = $obj->response->numFound;
-		$result['total'] = $num;
-		$pids = array();
-		foreach ($obj->resopnse->docs as $item);
-		{
-			array_push($pids, $item->PID);
-		}
-		$result['pids'] = $pids;
-		return($result);
-	}
+        $result = array();
+        // Setup Solr Connection.
+        $solr = setupSolr();
+        // Solr Query...
+        $json = file_get_contents("$solr/select?q=RELS_EXT_hasModel_uri_s:*$model&fl=PID&wt=json&indent=yes&sor=PID+asc&rows=2147483647");
+        if($json === FALSE) {
+                print "Error Talking with Solr.\n";
+                exit(1);
+        } else {
+                $obj = json_decode($json);
+                $num = $obj->response->numFound;
+                $result['total'] = $num;
+                $pids = array();
+                foreach ($obj->resopnse->docs as $item);
+                {
+                        array_push($pids, $item->PID);
+                }
+                $result['pids'] = $pids;
+                return($result);
+        }
 }
 
 
-/* 
+/*
    Objects
 */
 function dumpObject($object) {
-	$relationships = $object->relationships;
-	print "-------------------------------------------------------------------\n";
-	print "Relationships:\n";
-	$relations = print_r(getRelationship($object),true);
-	print $relations;
+        $relationships = $object->relationships;
+        print "-------------------------------------------------------------------\n";
+        print "Relationships:\n";
+        $relations = print_r(getRelationship($object),true);
+        print $relations;
 
-	print "-------------------------------------------------------------------\n";
-	print "RELS_EXT:\n";
-	$relsext = print_r(getRelationshipRELSEXT($object),true);
-	print $relsext;
+        print "-------------------------------------------------------------------\n";
+        print "RELS_EXT:\n";
+        $relsext = print_r(getRelationshipRELSEXT($object),true);
+        print $relsext;
 
 
-	print "-------------------------------------------------------------------\n";
-	print "hasModel:\n";
-	$has_model = print_r(get_hasModel($object));
-	print $has_model;
+        print "-------------------------------------------------------------------\n";
+        print "hasModel:\n";
+        $has_model = print_r(get_hasModel($object));
+        print $has_model;
 
-	#print "-------------------------------------------------------------------\n";
-	#print "Whole Object:\n";
-	#print_r($object);
+        #print "-------------------------------------------------------------------\n";
+        #print "Whole Object:\n";
+        #print_r($object);
 }
 
 
 function deleteObject($repository,$pid) {
     $object = $repository->getObject($pid);
     if ($object) {
-	$repository->purgeObject($object);
-	return(TRUE);
+        $repository->purgeObject($object);
+        return(TRUE);
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
 function createObject($repository,$pid) {
     $object = $repository->constructObject($pid);
     if ($object) {
-	return($object);
+        return($object);
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
@@ -445,9 +445,9 @@ function getObjectRelationships($object) {
 function createDatastream($object,$dsid) {
     $datastream = $object->constructDatastream($dsid);
     if ($datastream) {
-	return($datastream);
+        return($datastream);
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
@@ -464,7 +464,7 @@ function deleteDatastream($object,$dsid) {
 function getDatastreams($object) {
     $datastreams = array();
     foreach ($object as $datastream) {
-	array_push($datastreams,$datastream);
+        array_push($datastreams,$datastream);
     }
     return($datastreams);
 }
@@ -541,26 +541,26 @@ function getDatastreamChecksumType($datastream) {
 
 function getMimetypeToFileExtension($mimetype) {
     $extensions = array(
-	'text/xml' 		=> 'xml',
-	'text/html'		=> 'html',
-	'image/jpeg'		=> 'jpg',
-	'image/jpg'		=> 'jpg',
-	'image/tiff'		=> 'tif',
-	'image/jp2'		=> 'jp2',
-	'image/png'		=> 'png',
-	'audio/mpeg'		=> 'mp3',
-	'application/rdf+xml'	=> 'xml',
-	'application/xml'	=> 'xml',
-	'video/mp4'		=> 'mp4',
-	'video/x-matroska'	=> 'mkv',
-	'application/pdf'	=> 'pdf',
-	'audio/x-wav'		=> 'wav',
-	'text/plain'		=> 'txt'
+        'text/xml'              => 'xml',
+        'text/html'             => 'html',
+        'image/jpeg'            => 'jpg',
+        'image/jpg'             => 'jpg',
+        'image/tiff'            => 'tif',
+        'image/jp2'             => 'jp2',
+        'image/png'             => 'png',
+        'audio/mpeg'            => 'mp3',
+        'application/rdf+xml'   => 'xml',
+        'application/xml'       => 'xml',
+        'video/mp4'             => 'mp4',
+        'video/x-matroska'      => 'mkv',
+        'application/pdf'       => 'pdf',
+        'audio/x-wav'           => 'wav',
+        'text/plain'            => 'txt'
     );
     return $extensions[$mimetype];
 }
 
-/* 
+/*
    Setup
 */
 
@@ -570,9 +570,9 @@ function getRepositoryConnection() {
     $fedora_url = get_config_value('fedora','url');
     $connection = new RepositoryConnection($fedora_url, $fedora_username, $fedora_password);
     if ($connection) {
-	return $connection;
+        return $connection;
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
@@ -581,7 +581,7 @@ function getRepository($connection) {
     if ($api) {
         $repository = new FedoraRepository($api, new simpleCache());
         if ($repository) {
-	    return($repository);
+            return($repository);
         } else {
             return(FALSE);
         }
@@ -593,9 +593,9 @@ function getRepository($connection) {
 function getAPIA($repository) {
     $api_a = $repository->api->a;
     if ($api_a) {
-	return($api_a);
+        return($api_a);
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
@@ -611,9 +611,9 @@ function getAPIM($repository) {
 function getRI($repository) {
     $ri = $repository->ri;
     if ($ri) {
-	return($ri);
+        return($ri);
     } else {
-	return(FALSE);
+        return(FALSE);
     }
 }
 
@@ -629,7 +629,7 @@ function getObject($repository,$pid) {
 }
 
 
-    
+
 
 /*
    Utilities
@@ -641,7 +641,7 @@ function getObject($repository,$pid) {
 */
 function get_config_value($section,$key)
 {
-    if ( file_exists('uls-tuque.ini') )
+    if ( file_exists(dirname(__FILE__) . '/uls-tuque.ini') )
     {
         $ini_array = parse_ini_file('uls-tuque.ini', true);
         if (isset($ini_array[$section][$key]))
@@ -657,3 +657,4 @@ function get_config_value($section,$key)
 }
 
 ?>
+
