@@ -884,8 +884,14 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 				</dateModified>
 			</xsl:for-each>
 
-			<!-- tmee 1.52 -->
+                        <!-- need dateOther populated for Solr default Display fields -->
+                        <xsl:for-each select="marc:datafield[@tag=245]/marc:subfield[@code='f']">
+                                <dateOther>
+                                        <xsl:value-of select="."/>
+                                </dateOther>
+                        </xsl:for-each>
 
+			<!-- tmee 1.52 -->
 			<xsl:for-each select="marc:datafield[@tag=046]/marc:subfield[@code='c']">
 				<dateIssued encoding="marc" point="start">
 					<xsl:value-of select="."/>
@@ -2041,6 +2047,16 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 		<xsl:for-each select="marc:datafield[@tag='086']">
 			<xsl:call-template name="createClassificationFrom086"/>
 		</xsl:for-each>
+
+                <!-- need to display a value for mods_name_depositor_namePart_ms -->
+                <xsl:for-each select="marc:datafield[@tag=852]/marc:subfield[@code='a']">
+                  <name>
+                    <namePart><xsl:value-of select="."/></namePart>
+                    <role>
+                      <roleTerm type="text">depositor</roleTerm>
+                    </role>
+                  </name>
+                </xsl:for-each>
 
 		<!--	location	-->
 

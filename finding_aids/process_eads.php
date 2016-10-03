@@ -7,17 +7,25 @@
  *   include_once('/usr/local/src/islandora_tools/finding_aids/process_eads.php');
  */
 
+error_log('started ' . date('H:i:s'));
+
 define('EAD_FOLDER', '/usr/local/src/EAD-Delivery'); 
 define('MARC_DERIVED_FOLDER', '/usr/local/src/MARC/Derived');
 define('MARC_FOLDER', '/usr/local/src/MARC'); 
 define('MEMBEROFSITE_NAMESPACE', variable_get('upitt_islandora_memberofsite_namespace')); 
-define('FINDING_AIDS_COLLECTION', 'info:fedora/islandora:manuscriptCollection');
+// if FINDING_AIDS_COLLECTION is set, each ingested object would have an isMemberOfCollection relationship to this collection.
+// define('FINDING_AIDS_COLLECTION', 'islandora:manuscriptCollection');
+define('FINDING_AIDS_COLLECTION', 'pitt:finding-aids');
+
 // XML Transformation
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/xsl/MARC21slim2MODS3-5.xsl');
 
+// Allow this script to run until it is done ~ will certainly exceed 100 seconds.
+set_time_limit(0);
+
 // This variable controls how many of the total items are processed when this script runs.
 $process_exactly = PHP_INT_MAX;
-// $process_exactly = 1;
+// $process_exactly = 5;
 
 
 // Load our own Library.
@@ -68,7 +76,7 @@ foreach ($ead_files as $idx => $ead) {
   if ($i < $process_exactly) {
     $marc = NULL;
     $ead_id = _get_ead_id($ead);
-    //# uncomment next line for SINGLE_ITEM
+    //# uncomment next line for SINGLE_ITEM 
     // if ($ead_id == 'US-PPiU-ua402004') {
     $s0 .= 'given EAD file "' . $ead . '", ead_id = ' . $ead_id . ' ';
     $s2 = 'given EAD file "' . $ead . '", ead_id = ' . $ead_id;
@@ -102,7 +110,7 @@ foreach ($ead_files as $idx => $ead) {
     if (!is_null($marc)) {
       $s0 .= '[' . $i . '] ' . process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) . ' ';
     }
-    //# uncomment next line for SINGLE_ITEM
+    //# uncomment next line for SINGLE_ITEM 
     // }
   }
   else {
@@ -119,6 +127,8 @@ echo "<b>" . number_format($count_good) . " good MARC ~ EAD</b></br>";
 echo "<b>" . number_format($count_bad) . " bad MARC ~ EAD</b></br>";
 
 echo "<pre>";
+error_log('finished ' . date('H:i:s'));
+
 die(implode('
 ', $lines_good) . "</pre><hr><pre>" . implode('
 ', $lines_bad) . "<hr>" . $s);
@@ -153,11 +163,17 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
   $object->label = ($title) ? $title : $ead_id;
 
-  // Setting the object's models value should create a RELS-EXT
+  // !!! since the Solr query defaults for Solr base filter is being used to filter out the findingAids for now, don't need to set these inactive
+  //     PID:(pitt*) AND -RELS_EXT_hasModel_uri_ms:islandora:findingAidCModel
+  // !!!
+  // Set the State to Inactive for now --- 
+  //  $object->state = 'I';
+
+  // Setting the object's models value should create a RELS-EXT	
   $object->models = 'islandora:findingAidCModel';
 
   // Setting the isMemberOfCollection - for a single collection
-  if (FINDING_AIDS_COLLECTION <> '') {
+  if (FINDING_AIDS_COLLECTION <> '') { 
     _add_relationship_if_not_exists($object, 'isMemberOfCollection', FINDING_AIDS_COLLECTION, FEDORA_RELS_EXT_URI);
   }
   // These site and collection mappings are based on the ead filename.
@@ -195,7 +211,7 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   }
 
   return 'EAD = ' . $ead . ', ' .
-         'MARC = ' . $marc . ', ' .
+         'MARC = ' . $marc . ', ' . 
          'PID = ' . $object->id;
 }
 
@@ -293,7 +309,7 @@ function _get_ead_id($ead) {
 
     $query = '//d:eadid';
     $results = $xpath->query($query);
-    foreach ($results as $result) {
+    foreach ($results as $result) { 
       $nodeValue = trim($result->nodeValue);
     }
   }
@@ -315,7 +331,7 @@ function _save_marc($query, $marc_DOM, $marc_filename) {
   return $retval;
 }
 
-function _wrap($xml) {
+function _wrap($xml) { 
   $dom = new DOMDocument();
   $node = $dom->importNode($xml, TRUE);
   $dom->appendChild($node);
@@ -360,7 +376,12 @@ function _runXslTransform($info) {
 
 /**
  * This will run MARC to MODS transformation and save resultant MODS
- * to a temporary file.  Returns the filename for the new MODS file.
+ * to a temporary file. This also needs to set the 
+ *   Date:mods_originInfo_type_display_dateOther_s, and
+ *   Depositor: mods_name_depositor_namePart_ms 
+ * so that the it appear for the search results item.
+ *
+ * Returns the filename for the new MODS file.
  */
 function doMODSTransform($marc) {
   $marc_file = file_get_contents($marc);
@@ -376,4 +397,3 @@ function doMODSTransform($marc) {
   file_put_contents($filename, $new_MODS);
   return $filename;
 }
-
