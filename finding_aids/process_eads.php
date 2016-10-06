@@ -17,8 +17,9 @@ define('MEMBEROFSITE_NAMESPACE', variable_get('upitt_islandora_memberofsite_name
 // define('FINDING_AIDS_COLLECTION', 'islandora:manuscriptCollection');
 define('FINDING_AIDS_COLLECTION', 'pitt:finding-aids');
 
-// XML Transformation
+// XML Transformations
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/xsl/MARC21slim2MODS3-5.xsl');
+define('TRANSFORM_PITT_IDENTIFIER', dirname(__FILE__).'/xsl/mods_add_pitt_identifier.xsl');
 
 // Allow this script to run until it is done ~ will certainly exceed 100 seconds.
 set_time_limit(0);
@@ -187,7 +188,7 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $datastream->setContentFromFile($ead);
   $object->ingestDatastream($datastream);
 
-  $mods_filename = doMODSTransform($marc);
+  $mods_filename = doMODSTransform($marc, $ead_id);
   $dsid = 'MODS';
   $datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
   // update existing or set new MODS datastream
@@ -374,6 +375,27 @@ function _runXslTransform($info) {
   return $processor->transformToXML($input);
 }
 
+function _runXslTransformWithParam($info) {
+  $xsl = new DOMDocument();
+  $xsl->load($info['xsl']);
+  $input = new DOMDocument();
+  $input->loadXML($info['input']);
+
+  $processor = new XSLTProcessor();
+  $processor->importStylesheet($xsl);
+
+  if (isset($info['param_name']) && isset($info['param_value'])) {
+    $processor->setParameter('', $info['param_name'], $info['param_value']);
+  }
+
+  if (isset($info['php_functions'])) {
+    $processor->registerPHPFunctions($info['php_functions']);
+  }
+
+  // XXX: Suppressing warnings regarding unregistered prefixes.
+  return $processor->transformToXML($input);
+}
+
 /**
  * This will run MARC to MODS transformation and save resultant MODS
  * to a temporary file. This also needs to set the 
@@ -383,7 +405,7 @@ function _runXslTransform($info) {
  *
  * Returns the filename for the new MODS file.
  */
-function doMODSTransform($marc) {
+function doMODSTransform($marc, $ead_id) {
   $marc_file = file_get_contents($marc);
   // Get the DC by transforming from MODS.
   $new_MODS = ($marc_file) ? _runXslTransform(
@@ -392,6 +414,15 @@ function doMODSTransform($marc) {
               'input' => $marc_file,
             )
           ) : '';
+  $new_MODS = ($new_MODS) ? _runXslTransformWithParam(
+            array(
+              'xsl' => TRANSFORM_PITT_IDENTIFIER,
+              'input' => $marc_file,
+              'param_name' => 'mods_identifier_pitt',
+              'param_value' => $ead_id,
+            )
+          ) : '';
+
   $filename = tempnam("/tmp", "MODS_xml_derived_");
   // This file must be deleted in the process function that called this.
   file_put_contents($filename, $new_MODS);
