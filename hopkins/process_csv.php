@@ -26,6 +26,7 @@ $mods_mappings = array(0 => array('final_title' => '/mods:mods/mods:titleInfo/mo
 
 // This is the logfile for this 
 define('LOGFILE', '/usr/local/src/islandora_tools/hopkins/logfile');
+define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
 
 // If this variable is set to any PID that is in the spreadsheet, all items above it will not be processed -- making it 
 // the first PID to be processed;
@@ -395,7 +396,7 @@ function doDC($object, $mods_content) {
   if ($mods_content) {
     $new_dc = _runXslTransform(
             array(
-              'xsl' => drupal_get_path('module', 'islandora_batch') . '/transforms/mods_to_dc.xsl',
+              'xsl' => TRANSFORM_MODS2DC_STYLESHEET,
               'input' => $mods_content,
             )
           );

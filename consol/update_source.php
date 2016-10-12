@@ -3,10 +3,10 @@
 /**
  * This process must run from within the Islandora framework -- easiest way is to just call this from 
  * /devel/php with the single line of code:
- *    include_once('/usr/local/src/islandora_tools/hopkins/update_source.php');
+ *    include_once('/usr/local/src/islandora_tools/consol/update_source.php');
  * 
- * This process will update the Source values for the objects that are in the Hopkins maps collection so that the source
- * fields (mods_relatedItem_host_titleInfo_title_ms) include the year value.
+ * This process will update the Source values for the objects that have the Source (mods_relatedItem_host_titleInfo_title_ms) 
+ * value of "CONSOL Energy Inc. Mine Maps and Records Collection" to become "CONSOL Energy Inc. Mine Maps and Records".
  */
 
 /**
@@ -14,9 +14,13 @@
  *   1) run Solr query to get the objects in the collection.
  *   2) get the MODS for each object 
  *   3) update the mods_relatedItem_host_titleInfo_title_ms value so that it contains (mods_relatedItem_host_titleInfo_title_ms) + (mods_originInfo_type_display_dateOther_s)
+ *   4) finally, must update the DC (call transform mods_to_dc.xsl)
  */
 
-define('LOGFILE', '/usr/local/src/islandora_tools/logs/hopkins-update-source.log');
+define('TRANSFORM_STYLESHEET', dirname(__FILE__) . '/xsl/update_source.xsl');
+define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
+define('LOGFILE', '/usr/local/src/islandora_tools/logs/consol-update-source.log');
+
 _log('started ' . date('H:i:s'));
 
 // Load our own Library.
@@ -41,17 +45,18 @@ $connection = getRepositoryConnection();
 $repository = getRepository($connection);
 
 echo "<pre>";
-$hopkins_objects = _get_hopkins_pids();
-update_sources($hopkins_objects);
+$consol_objects = _get_consol_pids();
+update_sources($consol_objects);
 die();
 
-function _get_hopkins_pids() { 
+function _get_consol_pids() { 
   $query_processor = new IslandoraSolrQueryProcessor();
-  $query_processor->solrQuery = '(PID:pitt\:*) AND RELS_EXT_isMemberOfCollection_uri_ms:*pitt\:collection.240';
+
+  $query_processor->solrQuery = '(PID:pitt\:*) AND mods_relatedItem_host_titleInfo_title_ms:"CONSOL Energy Inc. Mine Maps and Records Collection"';
   $query_processor->solrStart = 0;
   $query_processor->solrLimit = 9999;
   $query_processor->solrParams = array(
-    'fl' => "PID,fgs_label_s,mods_relatedItem_host_titleInfo_ms,mods_originInfo_type_display_dateOther_s",
+    'fl' => "PID,fgs_label_s,mods_relatedItem_host_titleInfo_title_ms,mods_originInfo_type_display_dateOther_s",
     'fq' => '',
   );
   $url = parse_url(variable_get('islandora_solr_url', 'localhost:8080/solr'));
@@ -62,15 +67,10 @@ function _get_hopkins_pids() {
     $tmp = json_decode($results->getRawResponse(), TRUE);
     $results = array();
     foreach ($tmp['response']['docs'] as $trip) {
-      $year = $trip['mods_originInfo_type_display_dateOther_s'];
-      if (strlen($year) > 4 && !($timestamp = strtotime($year)) === false) {
-        $year = date('Y', $timestamp);
-      }
       $results[$trip['PID']] = array(
           'PID' => $trip['PID'],
           'fgs_label_s' => $trip['fgs_label_s'],
-          'mods_relatedItem_host_titleInfo_ms' => $trip['mods_relatedItem_host_titleInfo_ms'][0],
-          'mods_originInfo_type_display_dateOther_s' => $year,
+          'mods_relatedItem_host_titleInfo_title_ms' => $trip['mods_relatedItem_host_titleInfo_title_ms'][0],
         );
     }
     return $results;
@@ -80,42 +80,41 @@ function _get_hopkins_pids() {
   }  
 }
 
-function update_sources($hopkins_objects) {
+function update_sources($consol_objects) {
   $sources = array();
-  foreach ($hopkins_objects as $pid => $hopkins_object) {
-    $new_source = $hopkins_object['mods_relatedItem_host_titleInfo_ms']; /*.
-      (isset($hopkins_object['mods_originInfo_type_display_dateOther_s']) ? ' (' . $hopkins_object['mods_originInfo_type_display_dateOther_s'] . ')' : ''); */
-
-    _log('PID: ' . $pid . ', old source = \'' . addslashes($hopkins_object['mods_relatedItem_host_titleInfo_ms']) . '\', '.
-      'date: ' . $hopkins_object['mods_originInfo_type_display_dateOther_s'] . ', new source = \'' . $new_source . '\'');
-    echo $new_source . "<br>";
-    update_source($pid, $new_source);
+  $new_source = 'CONSOL Energy, Inc. Mine Maps and Records';
+  foreach ($consol_objects as $pid => $consol_object) {
+    _log('PID: ' . $pid . ', old source = \'' . addslashes($consol_object['mods_relatedItem_host_titleInfo_title_ms']) . '\', '.
+      'date: ' . $consol_object['mods_originInfo_type_display_dateOther_s'] . ', new source = \'' . $new_source . '\'');
+    update_source($pid);
     $sources[$new_source]++;
   }
   echo "<pre>".print_r($sources, true)."</pre>";
 }
 
-function update_source($pid, $new_source) {
+function update_source($pid) {
   $islandora_object = islandora_object_load($pid);
   if ($islandora_object) {
     $MODS_datastream = isset($islandora_object['MODS']) ? $islandora_object['MODS'] : NULL;
     if (!is_null($MODS_datastream)) {
-       _log($MODS_datastream->content);
+      _log('previous MODS: ' . "\n" . $MODS_datastream->content);
       $doc = new DOMDocument();
       $doc->loadXML($MODS_datastream->content);
 
       // use a transform to update the value?
-      $fly_transform = _fly_transform($new_source);
       $new_MODS = _runXslTransform(
             array(
-              'xsl' => $fly_transform,
+              'xsl' => TRANSFORM_STYLESHEET,
               'input' => $MODS_datastream->content,
             )
           );
+      echo "<pre>".htmlspecialchars($new_MODS)."</pre><hr>";
+      _log('new MODS: ' . "\n" . $new_MODS);
       $datastream = $islandora_object['MODS'];
       $datastream->setContentFromString($new_MODS);
       $islandora_object->ingestDatastream($datastream);
-      unlink($fly_template);
+      // This will update the DC record by transforming the current MODS xml.
+      doDC($islandora_object, $MODS_datastream->content);
     }
     else {
       _log('PROBLEM LOADING MODS for object ' . $pid);
@@ -133,27 +132,6 @@ function _log($message) {
     drupal_set_message($message, 'status');
   }
   error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
-}
-
-// this will create and save a transform file on the fly that will contain the value for the new_source.
-function _fly_transform($new_source) {
-  $tempFilename = tempnam("/tmp", "MODS_xml_initial_");
-  $data = str_replace(
-      array('{|', '|}', '}', '{'), 
-      array('?', '?', '>', '<'), '{{|xml version="1.0" |}}
-{xsl:stylesheet version="1.0"
-   xmlns:mods="http://www.loc.gov/mods/v3"
-   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"}
-   {xsl:template match="/ | @* | node()"}
-         {xsl:copy}
-           {xsl:apply-templates select="@* | node()" /}
-         {/xsl:copy}
-   {/xsl:template}
-   {xsl:template match="/mods:mods/mods:relatedItem[@type=\'host\']/mods:titleInfo"}{mods:titleInfo}{mods:title}' . $new_source . '{/mods:title}{/mods:titleInfo}{/xsl:template}
-{/xsl:stylesheet}');
-
-  file_put_contents($tempFilename, $data);
-  return $tempFilename;
 }
 
 // COPIED directly from islandora_batch/includes/islandora_scan_batch.inc.
@@ -186,5 +164,31 @@ function _runXslTransform($info) {
 
   // XXX: Suppressing warnings regarding unregistered prefixes.
   return $processor->transformToXML($input);
+}
+
+// Mostly COPIED from islandora_batch/includes/islandora_scan_batch.inc.
+/**
+ * Helper function to transform the MODS to get dc.
+ */
+function doDC($object, $mods_content) {
+  $dc_datastream = $object['DC'];
+  $dc_datastream->mimetype = 'application/xml';
+  $dc_datastream->label = 'DC Record';
+
+  // Get the DC by transforming from MODS.
+  if ($mods_content) {
+    $new_dc = _runXslTransform(
+            array(
+              'xsl' => TRANSFORM_MODS2DC_STYLESHEET,
+              'input' => $mods_content,
+            )
+          );
+    error_log('--------------- transform DC = ' . print_r($new_dc, true));
+  }
+  if (isset($new_dc)) {
+    $dc_datastream->setContentFromString($new_dc);
+  }
+  echo '<a href="http://gamera.library.pitt.edu/islandora/object/' . $object->id . '">' . $object->label . '</a><br>';
+  $object->ingestDatastream($dc_datastream);
 }
 

@@ -130,7 +130,7 @@ function doDC($object, $mods_content) {
   if ($mods_content) {
     $new_dc = _runXslTransform(
             array(
-              'xsl' => drupal_get_path('module', 'islandora_batch') . '/transforms/mods_to_dc.xsl',
+              'xsl' => TRANSFORM_MODS2DC_STYLESHEET,
               'input' => $mods_content,
             )
           );

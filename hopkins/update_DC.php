@@ -9,7 +9,7 @@ set_time_limit(0);
 
 // XML Transformation
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/transforms/subject_node_transform.xml');
-define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/transforms/mods_to_dc.xsl');
+define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
 
 
 // This is the logfile for this 
@@ -133,7 +133,7 @@ function doDC($object, $mods_content) {
   if ($mods_content) {
     $new_dc = _runXslTransform(
             array(
-              'xsl' => TRANSFORM_MODS2DC_STYLESHEET, // drupal_get_path('module', 'islandora_batch') . '/transforms/mods_to_dc.xsl',
+              'xsl' => TRANSFORM_MODS2DC_STYLESHEET,
               'input' => $mods_content,
             )
           );
