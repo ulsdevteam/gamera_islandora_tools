@@ -59,8 +59,16 @@ function getRelationshipRELSINT($object) {
 }
 
 function addRelationship($object,$predicate_uri,$predicate,$relation,$type) {
-        $relationships = $object->relationships;
-        $relationships->add($predicate_uri,$predicate,$relation,$type);
+	// get the current relationships
+	$rels = $object->relationships->get($namespace, $relationship);
+	$existed = FALSE;
+	foreach ($rels as $rel) {
+		$existed |= ((isset($rel['object']['value']) && $rel['object']['value'] == $value) && (isset($rel['predicate']['value']) && $rel['predicate']['value'] == $predicate));
+	}
+	if (!$existed) {
+	        $relationships = $object->relationships;
+        	$relationships->add($predicate_uri,$predicate,$relation,$type);
+	}
 }
 
 function getRelationship($object) {
@@ -89,14 +97,14 @@ function removeFromSite($object,$site) {
 }
 
 function addToCollection($object,$collection) {
-        $predicate_uri = 'http://islandora.ca/ontology/relsext#';
+        $predicate_uri = FEDORA_RELS_EXT_URI; // 'http://islandora.ca/ontology/relsext#';
         $predicate = 'isMemberOfCollection';
         $type = 'TRUE';
         addRelationship($object,$predicate_uri,$predicate,$collection,$type);
 }
 
 function removeFromCollection($object,$collection) {
-        #$predicate_uri = 'http://islandora.ca/ontology/relsext#';
+        // $predicate_uri = "http://islandora.ca/ontology/relsext#";
         $predicate_uri = 'info:fedora/fedora-system:def/relations-external#';
         $predicate = 'isMemberOfCollection';
         $type = 'TRUE';

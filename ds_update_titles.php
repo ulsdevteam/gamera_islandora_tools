@@ -11,6 +11,8 @@
 set_time_limit(0);
 define('LOGFILE', '/usr/local/src/islandora_tools/logs/ds_update_titles.log');
 
+include_once(dirname(__FILE__) .'/common/funcs.php');
+
 $fq = 'RELS_EXT_hasModel_uri_s:*bookCModel';
 
 // build SOLR query
@@ -113,12 +115,5 @@ return false;
     }
 */
   }
-}
-
-function _log($message) {
-  if (function_exists('drupal_set_message')) {
-    drupal_set_message($message, 'status');
-  }
-  error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
 }
 

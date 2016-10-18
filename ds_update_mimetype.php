@@ -12,6 +12,8 @@ set_time_limit(0);
 dpm('1');
 define('LOGFILE', '/usr/local/src/islandora_tools/logs/ds_update_mimetype.log');
 
+include_once(dirname(__FILE__) .'/common/funcs.php');
+
 $mime_from = 'image/jpg';
 $mime_to = 'image/jpeg';
 $fq = '';
@@ -66,12 +68,5 @@ function _process_mimetype_change($pids, $to) {
     }
   }
 
-}
-
-function _log($message) {
-  if (function_exists('drupal_set_message')) {
-    drupal_set_message($message, 'status');
-  }
-  error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
 }
 

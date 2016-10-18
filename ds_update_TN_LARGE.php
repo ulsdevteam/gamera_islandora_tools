@@ -12,6 +12,8 @@ set_time_limit(0);
 
 define('LOGFILE', '/usr/local/src/islandora_tools/logs/ds_update_TN_LARGE.log');
 
+include_once(dirname(__FILE__) .'/common/funcs.php');
+
 $fq = 'fedora_datastream_latest_TN_LARGE_SIZE_ms';
 
 // build SOLR query
@@ -79,9 +81,3 @@ function _process_change($pids, $to) {
 
 }
 
-function _log($message) {
-  if (function_exists('drupal_set_message')) {
-    drupal_set_message($message, 'status');
-  }
-  error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
-}

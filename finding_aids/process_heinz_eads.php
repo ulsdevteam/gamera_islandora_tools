@@ -21,10 +21,11 @@ define('MEMBEROFSITE_NAMESPACE', variable_get('upitt_islandora_memberofsite_name
 define('FINDING_AIDS_COLLECTION', 'pitt:finding-aids');
 define('FINDING_AIDS_HEINZ_COLLECTION', 'pitt:fa.heinz');
 
-
 // XML Transformations
 define('TRANSFORM_PITT_IDENTIFIER', dirname(__FILE__).'/xsl/mods_add_pitt_identifier.xsl');
 define('TRANSFORM_EAD2MODS_STYLESHEET', dirname(__FILE__).'/xsl/generic_ead_to_mods.xsl');
+
+include_once(dirname(__FILE__) .'/../common/funcs.php');
 
 // Allow this script to run until it is done ~ will certainly exceed 100 seconds.
 set_time_limit(0);
@@ -270,37 +271,6 @@ function _wrap($xml) {
 <marc:collection xmlns:marc="http://www.loc.gov/MARC21/slim" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/MARC21/slim http://www.loc.gov/standards/marcxml/schema/MARC21slim.xsd">
 ' . $xml_as_string . '
 </marc:collection>';
-}
-
-// COPIED directly from islandora_batch/includes/islandora_scan_batch.inc.
-/**
-  * Run an XSLT, and return the results.
-  *
-  * @param array $info
-  *   An associative array of parameters, containing:
-  *   - input: The input XML in a string.
-  *   - xsl: The path to an XSLT file.
-  *   - php_functions: Either a string containing one or an array containing
-  *     any number of functions to register with the XSLT processor.
-  *
-  * @return string
-  *   The transformed XML, as a string.
-  */
-function _runXslTransform($info) {
-  $xsl = new DOMDocument();
-  $xsl->load($info['xsl']);
-  $input = new DOMDocument();
-  $input->loadXML($info['input']);
-
-  $processor = new XSLTProcessor();
-  $processor->importStylesheet($xsl);
-
-  if (isset($info['php_functions'])) {
-    $processor->registerPHPFunctions($info['php_functions']);
-  }
-
-  // XXX: Suppressing warnings regarding unregistered prefixes.
-  return $processor->transformToXML($input);
 }
 
 function _runXslTransformWithParam($info) {

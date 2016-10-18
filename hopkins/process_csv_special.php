@@ -40,6 +40,8 @@ define('LOGFILE', '/usr/local/src/islandora_tools/hopkins/logfile');
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/transforms/remove_heir.xml');
 define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
 
+include_once(dirname(__FILE__) .'/../common/funcs.php');
+
 $last_container_created_id = -1;
 $filename = dirname(__FILE__).'/hopkins_special_chars.csv';
 $file = file($filename);
@@ -382,14 +384,6 @@ function _add_this_node_to_parent($doc, $partial_xpath, $last_found_parent, $xpa
   return $s;
 }
 
-function _log($message) {
-  if (function_exists('drupal_set_message')) {
-    drupal_set_message($message, 'status');
-  }
-  error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
-}
-
-
 // Mostly COPIED from islandora_batch/includes/islandora_scan_batch.inc.
 /**
  * Helper function to transform the MODS to get dc.
@@ -414,38 +408,6 @@ function doDC($object, $mods_content) {
   }
 }
 
-// COPIED directly from islandora_batch/includes/islandora_scan_batch.inc.
-/**
-  * Run an XSLT, and return the results.
-  *
-  * @param array $info
-  *   An associative array of parameters, containing:
-  *   - input: The input XML in a string.
-  *   - xsl: The path to an XSLT file.
-  *   - php_functions: Either a string containing one or an array containing
-  *     any number of functions to register with the XSLT processor.
-  *
-  * @return string
-  *   The transformed XML, as a string.
-  */
-function _runXslTransform($info) {
-  $xsl = new DOMDocument();
-  $xsl->load($info['xsl']);
-  _log('transform style sheet: ' . $info['xsl']);
-  $input = new DOMDocument();
-  $input->loadXML($info['input']);
-
-  $processor = new XSLTProcessor();
-  $processor->importStylesheet($xsl);
-
-  if (isset($info['php_functions'])) {
-    $processor->registerPHPFunctions($info['php_functions']);
-  }
-
-  // XXX: Suppressing warnings regarding unregistered prefixes.
-  return $processor->transformToXML($input);
-}
-
 function doHackTransform($mods_content) {
   // Get the DC by transforming from MODS.
   $new_MODS = ($mods_content) ? _runXslTransform(
@@ -456,4 +418,3 @@ function doHackTransform($mods_content) {
           ) : '';
   return $new_MODS;
 }
-

@@ -6,23 +6,26 @@
     <xsl:param name="mods_identifier_pitt" select="defaultstring"/>
 
     <!-- copy entire XML -->
-    <xsl:template match="@* | node()">
+    <xsl:template match="node()|@*">
         <xsl:copy>
-            <xsl:apply-templates select="@* | node()"/>
+            <xsl:apply-templates select="node()|@*"/>
         </xsl:copy>
     </xsl:template>
 
-    <!-- add "identifier" node or update existing for the mods_identifier_pitt_s -->
-    <xsl:template match="/mods">
-        <xsl:choose>
-            <xsl:when test="count(identifier[@type='pitt'])">
-                <xsl:copy select="identifier[@type='pitt']">
-                    Testing
-                </xsl:copy>
-            </xsl:when>
-            <xsl:otherwise>
-                <identifier type="pitt">Testing</identifier>
-            </xsl:otherwise>
-        </xsl:choose>
-    </xsl:template>
+<xsl:template match="//mods/identifier[@type='pitt']">
+  <xsl:copy>
+    <xsl:attribute name="type">jack is <xsl:value-of select="@type" /></xsl:attribute>
+    <xsl:apply-templates select="node()|@*"/>
+<!--    <xsl:apply-templates select="node()|@[local-name(.) != 'type']" /> -->
+  </xsl:copy>
+</xsl:template>
+
+<xsl:template match="//mods[not(identifier[type='pitt'])]">
+   <mods>
+      <xsl:apply-templates select="node()|@*" />
+      <identifier type='pitt'><xsl:value-of select="$mods_identifier_pitt"/></identifier>
+   </mods>
+</xsl:template>
+
+
 </xsl:stylesheet>

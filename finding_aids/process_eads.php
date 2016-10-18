@@ -20,13 +20,16 @@ define('FINDING_AIDS_COLLECTION', 'pitt:finding-aids');
 // XML Transformations
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/xsl/MARC21slim2MODS3-5.xsl');
 define('TRANSFORM_PITT_IDENTIFIER', dirname(__FILE__).'/xsl/mods_add_pitt_identifier.xsl');
+define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
+
+include_once(dirname(__FILE__) .'/../common/funcs.php');
 
 // Allow this script to run until it is done ~ will certainly exceed 100 seconds.
 set_time_limit(0);
 
 // This variable controls how many of the total items are processed when this script runs.
 $process_exactly = PHP_INT_MAX;
-// $process_exactly = 5;
+// $process_exactly = 1;
 
 
 // Load our own Library.
@@ -115,7 +118,7 @@ foreach ($ead_files as $idx => $ead) {
     // }
   }
   else {
-    $s0 .= '[' .$i . '] skipped (' . $ead_name . ', ' . $marc_filename . ')' . ' ';
+//    $s0 .= '[' .$i . '] skipped (' . $ead_name . ', ' . $marc_filename . ')' . ' ';
   }
   $i++;
   $s .= $s0;
@@ -196,7 +199,9 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $datastream->mimeType = 'text/xml';
   $datastream->setContentFromFile($mods_filename);
   $object->ingestDatastream($datastream);
-  @unlink($tempFilename);
+  $mods_file = $datastream->content;
+
+  @unlink($mods_filename);
 
   $dsid = 'MARC';
   $datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
@@ -206,11 +211,13 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $datastream->setContentFromFile($marc);
   $object->ingestDatastream($datastream);
 
+  // This will update the DC record by transforming the current MODS xml.
+  doDC($object, $mods_file);
+
   // If the object IS only constructed, ingesting it here also ingests the datastream.
   if (!$object_existed) {
     $repository->ingestObject($object);
   }
-
   return 'EAD = ' . $ead . ', ' .
          'MARC = ' . $marc . ', ' . 
          'PID = ' . $object->id;
@@ -344,45 +351,21 @@ function _wrap($xml) {
 </marc:collection>';
 }
 
-// COPIED directly from islandora_batch/includes/islandora_scan_batch.inc.
-/**
-  * Run an XSLT, and return the results.
-  *
-  * @param array $info
-  *   An associative array of parameters, containing:
-  *   - input: The input XML in a string.
-  *   - xsl: The path to an XSLT file.
-  *   - php_functions: Either a string containing one or an array containing
-  *     any number of functions to register with the XSLT processor.
-  *
-  * @return string
-  *   The transformed XML, as a string.
-  */
-function _runXslTransform($info) {
-  $xsl = new DOMDocument();
-  $xsl->load($info['xsl']);
-  $input = new DOMDocument();
-  $input->loadXML($info['input']);
-
-  $processor = new XSLTProcessor();
-  $processor->importStylesheet($xsl);
-
-  if (isset($info['php_functions'])) {
-    $processor->registerPHPFunctions($info['php_functions']);
-  }
-
-  // XXX: Suppressing warnings regarding unregistered prefixes.
-  return $processor->transformToXML($input);
-}
-
+/* the $info variable has array elements:
+              'xsl' => TRANSFORM_PITT_IDENTIFIER,
+              'input' => $marc_file,
+              'param_name' => 'mods_identifier_pitt',
+              'param_value' => $ead_id,
+*/
 function _runXslTransformWithParam($info) {
+
   $xsl = new DOMDocument();
   $xsl->load($info['xsl']);
   $input = new DOMDocument();
   $input->loadXML($info['input']);
 
   $processor = new XSLTProcessor();
-  $processor->importStylesheet($xsl);
+  $processor->importStylesheet($xsl);  
 
   if (isset($info['param_name']) && isset($info['param_value'])) {
     $processor->setParameter('', $info['param_name'], $info['param_value']);
@@ -414,17 +397,56 @@ function doMODSTransform($marc, $ead_id) {
               'input' => $marc_file,
             )
           ) : '';
-  $new_MODS = ($new_MODS) ? _runXslTransformWithParam(
+echo "<pre style='color:#78a'>".htmlspecialchars($new_MODS)."</pre>";
+  $new_MODS = _inject_eadid($new_MODS, $ead_id);
+/*  $new_MODS = ($new_MODS) ? _runXslTransformWithParam(
             array(
               'xsl' => TRANSFORM_PITT_IDENTIFIER,
-              'input' => $marc_file,
+              'input' => $new_MODS,
               'param_name' => 'mods_identifier_pitt',
               'param_value' => $ead_id,
             )
-          ) : '';
+          ) : ''; */
 
   $filename = tempnam("/tmp", "MODS_xml_derived_");
   // This file must be deleted in the process function that called this.
   file_put_contents($filename, $new_MODS);
   return $filename;
+}
+
+// Mostly COPIED from islandora_batch/includes/islandora_scan_batch.inc.
+/**
+ * Helper function to transform the MODS to get dc.
+ */
+function doDC($object, $mods_content) {
+  $dc_datastream = $object['DC'];
+  $dc_datastream->mimetype = 'application/xml';
+  $dc_datastream->label = 'DC Record';
+
+  // Get the DC by transforming from MODS.
+  if ($mods_content) {
+    $new_dc = _runXslTransform(
+            array(
+              'xsl' => TRANSFORM_MODS2DC_STYLESHEET, 
+              'input' => $mods_content,
+            )
+          );
+    error_log('--------------- transform DC = ' . print_r($new_dc, true));
+  }
+  if (isset($new_dc)) {
+    $dc_datastream->setContentFromString($new_dc);
+  }
+echo '<a href="http://gamera.library.pitt.edu/islandora/object/' . $object->id . '">' . $object->label . '</a><br>';
+  $object->ingestDatastream($dc_datastream);
+}
+
+// HORRIBLE hack
+function _inject_eadid($new_MODS, $ead_id) {
+  $node_partial = '<identifier type="pitt">';
+  $node_full = $node_partial . $ead_id . "</identifier>";
+  if (strstr($new_MODS, $node_partial)) {
+    return $new_MODS;
+  } else {
+    return str_replace("</mods>", $node_full."</mods>", $new_MODS);
+  }
 }

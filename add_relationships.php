@@ -2,6 +2,8 @@
 
 define('LOGFILE', '/usr/local/src/islandora_tools/logs/bulk_add_collection_items.log');
 
+include_once(dirname(__FILE__) .'/common/funcs.php');
+
 $path = dirname(__FILE__);
 $items = file($path . '/duplicates.txt');
 
@@ -78,12 +80,5 @@ function _add_item_to_collection($pid, $add_to_collection) {
 
   $ret['done'] = TRUE;
   return $ret;
-}
-
-function _log($message) {
-  if (function_exists('drupal_set_message')) {
-    drupal_set_message($message, 'status');
-  }
-  error_log(date('c') . ' ' . $message."\n", 3, LOGFILE);
 }
 
