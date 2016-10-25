@@ -59,9 +59,7 @@ foreach ($csv as $row) {
     if (is_object($islandora_object)) {
       // Since we know the spreadsheet row can only have two possible collections, just read 1 and 2 like this
       if (isset($row[1]) && (trim($row[1]) <> '')) {
-  if ($i > 1) {
         process_change($islandora_object, trim($row[1])); 
-}
         $processed_pids[] = $pid;
       }
     }
@@ -80,16 +78,21 @@ function process_change($islandora_object, $title) {
   _log('working on ' . $islandora_object->id . ' "' . $title . '"', LOGFILE);
   $page = lookup_page_from_book($islandora_object);
   $page_pids = array_keys($page);
-  echo $islandora_object->id . ' <a href="/islandora/object/' . $islandora_object->id . '/manage/datastreams">' . $title . "</a><br><b>" . count($page_pids) . " page" . ((count($page_pids) == 1) ? '' : 's') . ":</b> " . 
-     implode(", ", $page_pids) . "<hr>";
+  $page_block = array();
+  foreach ($page_pids as $page_pid) {
+    $page_block[] = '<a href="http://gamera.library.pitt.edu/islandora/object/'. $page_pid . '">' . $page_pid . '</a>';
+  }
+  echo '<a href="http://gamera.library.pitt.edu/islandora/object/' . $islandora_object->id . '/manage/datastreams">' . $title . "</a> " . $islandora_object->id . "<br><b>" . count($page_pids) . " page" . ((count($page_pids) == 1) ? '' : 's') . ":</b><div style='padding:10px'>" . 
+     implode("<br>", $page_block) . "</div><hr>";
 
 //  $current_model = $islandora_object->models;
 //  echo "models <pre>" . implode(", ", $current_model) . "</pre>";
+return; 
 
   $MODS_datastream = isset($islandora_object['MODS']) ? $islandora_object['MODS'] : NULL;
   if (!is_null($MODS_datastream)) {
-    _log('previous MODS: ' . "\n" . $MODS_datastream->content);
-echo "<pre style='color:#698'>".htmlspecialchars(print_r($MODS_datastream->content, true))."</pre>";
+     _log('previous MODS: ' . "\n" . $MODS_datastream->content);
+// echo "<pre style='color:#698'>".htmlspecialchars(print_r($MODS_datastream->content, true))."</pre>";
     $doc = new DOMDocument();
     $doc->loadXML($MODS_datastream->content);
 
