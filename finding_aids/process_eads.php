@@ -80,7 +80,8 @@ foreach ($ead_files as $idx => $ead) {
   if ($i < $process_exactly) {
     $marc = NULL;
     $ead_id = _get_ead_id($ead);
-    //# uncomment next line for SINGLE_ITEM 
+echo "working on " . $ead_id ."<br>";
+/*    //# uncomment next line for SINGLE_ITEM 
     // if ($ead_id == 'US-PPiU-ua402004') {
     $s0 .= 'given EAD file "' . $ead . '", ead_id = ' . $ead_id . ' ';
     $s2 = 'given EAD file "' . $ead . '", ead_id = ' . $ead_id;
@@ -109,11 +110,12 @@ foreach ($ead_files as $idx => $ead) {
         $count_bad++;
       }
     }
+*/
     $ead_marc = array('ead' => $ead,
                       'marc' => $marc);
-    if (!is_null($marc)) {
+//    if (!is_null($marc)) {
       $s0 .= '[' . $i . '] ' . process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) . ' ';
-    }
+//    }
     //# uncomment next line for SINGLE_ITEM 
     // }
   }
@@ -164,7 +166,7 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   }
 
   // Get the title from the MARC file
-  $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
+/*  $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
   $object->label = ($title) ? $title : $ead_id;
 
   // !!! since the Solr query defaults for Solr base filter is being used to filter out the findingAids for now, don't need to set these inactive
@@ -210,14 +212,20 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $datastream->mimeType = 'application/xml';
   $datastream->setContentFromFile($marc);
   $object->ingestDatastream($datastream);
-
+*/
   // This will update the DC record by transforming the current MODS xml.
+$mods_file = $object['MODS']->content;
+if ($mods_file == '' && !$object_existed) {
+  echo "PID:pitt" . $ead_id . " did not exist<br>";
+}
+else {
   doDC($object, $mods_file);
+}
 
   // If the object IS only constructed, ingesting it here also ingests the datastream.
   if (!$object_existed) {
     $repository->ingestObject($object);
-  }
+  } 
   return 'EAD = ' . $ead . ', ' .
          'MARC = ' . $marc . ', ' . 
          'PID = ' . $object->id;

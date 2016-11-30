@@ -70,7 +70,7 @@
 		</xsl:choose>
 	</xsl:template>
 	
-	<xsl:template match="mods:titleInfo">
+	<xsl:template match="mods:titleInfo[not(@*)]">
 		<dc:title>
 			<xsl:value-of select="mods:nonSort"/>
 			<xsl:if test="mods:nonSort">
