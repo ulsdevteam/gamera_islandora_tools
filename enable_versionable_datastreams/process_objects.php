@@ -44,15 +44,14 @@ echo "<pre>";
 $objects = _get_pids();
 update_datastreams($objects, $repository);
 error_log('done ' . date('H:i:s'));
-
 die();
 
 function _get_pids() { 
   $query_processor = new IslandoraSolrQueryProcessor();
 
-  $query_processor->solrQuery = '(fedora_datastream_info_RELS-EXT_VERSIONABLE_ms:false OR fedora_datastream_info_RELS-INT_VERSIONABLE_ms:false)';
+  $query_processor->solrQuery = '(fedora_datastream_info_RELS-EXT_VERSIONABLE_ms:false OR fedora_datastream_info_RELS-INT_VERSIONABLE_ms:false OR fedora_datastream_info_DC_VERSIONABLE_ms:false)';
   $query_processor->solrStart = 0;
-  $query_processor->solrLimit = 29999;
+  $query_processor->solrLimit = 8000;
   $query_processor->solrParams = array(
     'fl' => "PID,fgs_label_s",
     'fq' => '',
@@ -88,6 +87,10 @@ function update_datastream($pid, $repository) {
   echo "<a href='http://gamera.library.pitt.edu/islandora/object/" . $pid . "/manage'>" . $pid . "</a><br>";
 
   $dss = array();
+  if ($dc = $object->getDatastream('DC')) {
+    $dc->versionable = TRUE;
+    $dss[] = 'DC';
+  }
   if ($relsint = $object->getDatastream('RELS-INT')) {
     $relsint->versionable = TRUE;
     $dss[] = 'RELS-INT';
@@ -96,5 +99,5 @@ function update_datastream($pid, $repository) {
     $relsext->versionable = TRUE;
     $dss[] = 'RELS-EXT';
   }
-  error_log('set ' . implode(', ', $dss) . ' datastream->versionable to TRUE');
+  error_log('for ' . $pid . ' set ' . implode(', ', $dss) . ' datastream->versionable to TRUE');
 }

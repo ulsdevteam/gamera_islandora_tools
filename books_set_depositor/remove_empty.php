@@ -110,7 +110,8 @@ echo "<pre style='color:#698'>".htmlspecialchars(print_r($MODS_datastream->conte
  * Helper function to transform the MODS to get dc.
  */
 function doDC($object, $mods_content) {
-  $dc_datastream = $object['DC'];
+  $dsid = 'DC';
+  $dc_datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
   $dc_datastream->mimetype = 'application/xml';
   $dc_datastream->label = 'DC Record';
 
