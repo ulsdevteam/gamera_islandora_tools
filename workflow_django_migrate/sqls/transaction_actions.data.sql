@@ -53,4 +53,6 @@ INSERT INTO `transaction_actions` (`id`, `description`) VALUES
 	(141, 'scan performed'),
 	(142, 'make thumnail performed'),
 	(143, 'check-out performed'),
-	(144, 'ocr performed');
+	(144, 'ocr performed'),
+        (145, 'Islandora ingest started'),
+        (146, 'holding files moved');

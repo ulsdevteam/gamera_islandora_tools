@@ -4,7 +4,7 @@
  * This script will scan the EAD_FOLDER for all *.ead.xml files and MARC_FOLDER
  * for the related *.marc.xml files - and ingest them (or update them if they already exist).
  * Call from http://gamera.library.pitt.edu/devel/php with the following line of code
- *   include_once('/usr/local/src/islandora_tools/finding_aids/process_eads.php');
+ *   include_once('/usr/local/src/islandora_tools/finding_aids/process_heinz_eads.php');
  */
 
 error_log('started ' . date('H:i:s'));
@@ -44,7 +44,7 @@ $tag099 = array('mss1087.xml' => array('a' => '1087', 'b' => 'MSS'),
 
 define('DEBUG_MODE', FALSE);
 
-define('EAD_FOLDER', '/usr/local/src/HSWP-EAD');
+define('EAD_FOLDER', '/usr/local/src/HSWP-EAD/new');
 define('MARC_FOLDER', '/usr/local/src/HSWP-MARC');
 define('MARC_DERIVED_FOLDER', '/usr/local/src/HSWP-MARC/Derived');
 define('MEMBEROFSITE_NAMESPACE', variable_get('upitt_islandora_memberofsite_namespace'));
@@ -235,6 +235,7 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $doc_xml = $doc0->saveXML();
   // use the $ead_id to make the PID
   $id = 'pitt:' . $ead_id;
+  echo "<b>load <a href='/islandora/object/" . $id . "/manage' target='_blank'>" . $id . "</a></b><hr>";
   $object = islandora_object_load($id);
   if (!$object) {
     $object = $repository->constructObject($id);
@@ -245,10 +246,12 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   }
 
   // Get the title from the MARC file
-//  $title = _get_xpath_nodeValue($doc0 /* $doc_xml */, '//filedesc/titlestmt/titleproper');
 //  $title = _get_xpath_nodeValue($doc0 /* $doc_xml */, '//d:filedesc/d:titlestmt/d:titleproper');
   $title = _get_xpath_nodeValue($doc_xml, '//d:filedesc/d:titlestmt/d:titleproper');
-die(htmlspecialchars($doc_xml));
+  echo "<h3>" . $title . "</h3>";
+
+  echo "<pre style='max-height:180px;height:180px;overflow-y:scroll'>" . htmlspecialchars($doc_xml) . "</pre>";
+
   echo "<h3 style='color:green'>".$title." [" . $id . "]</h3>";
   $object->label = ($title) ? $title : $ead_id;
   // Setting the object's models value should create a RELS-EXT
@@ -328,7 +331,6 @@ function _get_xpath_nodeValue($doc_xml, $query) {
 
   $xpath = new DOMXPath($doc);
   $xpath->registerNamespace('d', 'urn:isbn:1-931666-22-9');
-
   $results = $xpath->query($query);
   $nodeValue = NULL;
   // the value coming from the XML usually has a bunch of extra spaces and potential line feeds

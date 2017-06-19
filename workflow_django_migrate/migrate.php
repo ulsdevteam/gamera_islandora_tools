@@ -8,6 +8,7 @@
 //\//\/
 
 set_time_limit(0);
+// backup();
 
 /**
  * Call from http://gamera.library.pitt.edu/devel/php with the following line of code
@@ -83,6 +84,15 @@ _get_dump_renametable_run_new('wflocal_local_item_fedora_sites', 'wflocal_local_
 _get_dump_renametable_run_new('wflocal_fedora_site', 'wflocal_fedora_site');
 
 die();
+
+function backup() {
+  $command = 'mysqldump -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow > /home/bgilling/workflow_django.sql';
+  exec($command, $output, $return_var);
+  echo "<div style='color:" . (($return_var > 0) ? 'green' : 'red'). "'>dump sql run '" . $command . "'.</div>";
+  if ($return_var) {
+    echo '<code style="color:#269">' . _safe($command) . '</code><br />';
+  }
+}
 
 function _run_sql($filename) {
   $createSql = '/usr/local/src/islandora_tools/workflow_django_migrate/sqls/' . $filename;

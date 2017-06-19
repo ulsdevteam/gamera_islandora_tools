@@ -37,7 +37,7 @@ ALTER TABLE `batch`
    ADD COLUMN `batch_priority` VARCHAR(50) NOT NULL DEFAULT '',
    ADD COLUMN `batch_default_CR_status` VARCHAR(12) NOT NULL DEFAULT '',
    ADD COLUMN `content_type_id` INT(5) UNSIGNED NOT NULL DEFAULT '0',
-   ADD COLUMN `mapto_site_id_values` VARCHAR(50) NOT NULL DEFAULT '0' COMMENT 'comma separated values',
+   ADD COLUMN `mapto_site_id_values` VARCHAR(255) NOT NULL DEFAULT '0' COMMENT 'comma separated values',
    ADD COLUMN `file` VARCHAR(255) NOT NULL DEFAULT '0',
    ADD COLUMN `lastmod` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `file`,
    ADD COLUMN `user` VARCHAR(50) NOT NULL AFTER `lastmod`;
