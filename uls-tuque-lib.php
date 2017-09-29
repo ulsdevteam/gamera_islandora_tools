@@ -575,7 +575,7 @@ function getMimetypeToFileExtension($mimetype) {
 function getRepositoryConnection() {
     $fedora_username = get_config_value('fedora','username');
     $fedora_password = get_config_value('fedora','password');
-    $fedora_url = get_config_value('fedora','url');
+    $fedora_url = get_config_value('fedora', 'url');
     $connection = new RepositoryConnection($fedora_url, $fedora_username, $fedora_password);
     if ($connection) {
         return $connection;

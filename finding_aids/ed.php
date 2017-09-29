@@ -9,20 +9,17 @@
 
 error_log('started ' . date('H:i:s'));
 
-$skip_eads = array(''); // ZZ AACCWP-ead.xml');
-
-define('EAD_FILE_ENDSWITH', '-ead.xml');
-define('MARC_FILE_ENDSWITH', '-marc.xml');
+$skip_eads = array('AACCWP-ead.xml');
 
 define('EAD_FOLDER', '/usr/local/src/EAD-Delivery'); 
 define('MARC_DERIVED_FOLDER', '/usr/local/src/MARC/Derived');
 define('MARC_FOLDER', '/usr/local/src/MARC'); 
-define('MEMBEROFSITE_NAMESPACE', variable_get('islandora_memberofsite_namespace', 'http://digital.library.pitt.edu/ontology/relations#'));
+define('MEMBEROFSITE_NAMESPACE', variable_get('islandora_memberofsite_namespace', 'http://digital.library.pitt.edu/ontology/relations#')); 
 
 // XML Transformations
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/xsl/MARC21slim2MODS3-5.xsl');
 define('TRANSFORM_PITT_IDENTIFIER', dirname(__FILE__).'/xsl/mods_add_pitt_identifier.xsl');
-define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/upitt_mods_to_dc.xsl');
+define('TRANSFORM_MODS2DC_STYLESHEET', dirname(__FILE__).'/../common/xsl/mods_to_dc.xsl');
 
 include_once(dirname(__FILE__) .'/../common/funcs.php');
 
@@ -63,15 +60,14 @@ $repository = getRepository($connection);
 $s = ''; // for debug output
 $lines_good = $lines_bad = array();
 $count_good = $count_bad = 0;
-$ead_files = _get_files(EAD_FOLDER, EAD_FILE_ENDSWITH);
-$marcs = _get_files(MARC_DERIVED_FOLDER, MARC_FILE_ENDSWITH);
+$ead_files = _get_files(EAD_FOLDER, '-ead.xml');
+$marcs = _get_files(MARC_DERIVED_FOLDER, '-marc.xml');
 
 // Make this array all uppercase -- later the uppercase EAD filename will be searched for in this array
 // and if it returns ONLY one key when searched, we can assume that the MARC filename is 100% match.
 foreach ($marcs as $index => $marc_filename) {
   $uc_marcs[$index] = strtoupper($marc_filename);
 }
-
 $marc_file = MARC_DERIVED_FOLDER . '/2017_01_12_FindingAidsComplete.xml'; //FindingAidsCorrected.xml'; // _get_files(MARC_FOLDER, '-marc.xml');
 echo "<h1>" . $marc_file . "</h1>";
 sort($ead_files);
@@ -85,11 +81,10 @@ if (!@$marc_DOM->load($marc_file)) {
 $missing = $finding_aids = array();
 $i = 0;
 foreach ($ead_files as $idx => $ead) {
-echo $ead."<hr>";
  if (array_search($ead, $skip_eads) === FALSE) {
   $s0 = '';
-  $ead_name = str_replace(EAD_FILE_ENDSWITH, '', $ead);
-  $marc_filename = str_replace(EAD_FILE_ENDSWITH, MARC_FILE_ENDSWITH, $ead);
+  $ead_name = str_replace('-ead.xml', '', $ead);
+  $marc_filename = str_replace('-ead.xml', '-marc.xml', $ead);
 
   $uc_marc_filename = strtoupper($marc_filename);
   if ($i < $process_exactly) {
@@ -129,13 +124,9 @@ echo $ead."<hr>";
         $AT_marc_filename = MARC_FOLDER . '/' . $marcs[$marc_keys[0]];
       }
 
-// echo "[" . (file_exists($AT_marc_filename)) . "]<br>";
-// die($AT_marc_filename);
       if (file_exists($AT_marc_filename)) {
         $s0 .= 'found matching MARC by filename : ' . $AT_marc_filename . ' ';
         $marc = (copy($AT_marc_filename, MARC_DERIVED_FOLDER . '/' . $marc_filename)) ? $marc_filename : NULL;
-$marc = $marc_filename; // fuck this copy function not working
-echo 'copy(' . $AT_marc_filename . ', ' . MARC_DERIVED_FOLDER . '/' . $marc_filename . ')<hr>';
         $lines_good[] = $s2;
         $s0 .= '_save_marc did not find anything for the query ' . $marc_query . ' but found matching MARC file : ' . $marc_filename . ' ';
         $count_good++;
@@ -147,7 +138,6 @@ echo 'copy(' . $AT_marc_filename . ', ' . MARC_DERIVED_FOLDER . '/' . $marc_file
         $count_bad++;
       }
     }
-
     echo $s2."\n" . '<a href="http://gamera.library.pitt.edu/islandora/object/pitt:' . $ead_id . '/manage/datastreams">link</a>';
     $ead_marc = array('ead' => $ead,
                       'marc' => $marc);
@@ -191,7 +181,6 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
 
   // Schema check
   $doc0 = new DOMDocument();
-
   echo "checking schema of ead XML";
   if (!@$doc0->load($ead) || (!@$doc0->schemaValidate(dirname(__FILE__) .'/schema/ead_explicit_xsd.xsd'))) {  //  ead.xsd'))) {
     return 'ERROR: Schema did not validate for this file : ' . $ead . "\n";
@@ -201,13 +190,9 @@ function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $doc_xml = $doc0->saveXML();
   // use the $ead_id to make the PID
   $id = 'pitt:' . $ead_id;
-echo "pre<br>";
   $object = islandora_object_load($id);
-echo "after load<br>";
   if (!$object) {
-echo "pre<br>";
     $object = $repository->constructObject($id);
-echo "after construct new object<br>";
     $object_existed = FALSE;
   }
   else {
@@ -218,11 +203,11 @@ echo "after construct new object<br>";
   $object->label = ($title) ? $title : $ead_id; 
   // Setting the object's models value should create a RELS-EXT	
   $object->models = 'islandora:findingAidCModel';
-echo $title."<hr><hr>";
+
   // These site mappings are based on the ead filename.
   add_site_mappings($object, $ead_marc['ead']);
 
-
+/*
   $dsid = 'EAD';
   $datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
   // update existing or set new EAD datastream
@@ -234,8 +219,8 @@ echo $title."<hr><hr>";
   }
   $datastream->setContentFromFile($ead);
   $object->ingestDatastream($datastream);
-
-
+*/
+/*
   $mods_filename = doMODSTransform($marc, $ead_id);
   $dsid = 'MODS';
   $datastream = isset($object[$dsid]) ? $object[$dsid] : $object->constructDatastream($dsid);
@@ -271,18 +256,12 @@ echo $title."<hr><hr>";
   else {
     doDC($object, $mods_file);
   }
+
   // If the object IS only constructed, ingesting it here also ingests the datastream.
   if (!$object_existed) {
-    try {
-// echo "<pre>".print_r($object, true) ."</pre>";
-      $repository->ingestObject($object);
-    } catch (Exception $e) {
-echo "<pre>".print_r($e, true)."</pre>";
-      echo 'Caught exception: ',  $e->getMessage(), "\n";
-      print_r($e->getTraceAsString(), true);
-      die();
-    }
-  }
+    $repository->ingestObject($object);
+  } 
+*/
   return 'EAD = ' . $ead . ', ' .
          'MARC = ' . $marc . ', ' . 
          'PID = ' . $object->id;
@@ -344,6 +323,9 @@ function add_site_mappings($object, $ead_filename) {
 
   foreach ($site_ead_maps as $site => $site_mappings) {
     foreach ($site_mappings as $site_mapping) {
+      if ($prefix == 'UE' && $site == 'pitt:site.historic-pittsburgh') {
+echo "XX " . $ead_filename . "\n";
+      }
       if ($site_mapping == $prefix) {
         _add_relationship_if_not_exists($object, 'isMemberOfSite', $site, MEMBEROFSITE_NAMESPACE);
       }
@@ -418,7 +400,6 @@ function _save_marc($query, $marc_DOM, $marc_filename, $query2, $query3, $query4
       $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
     }
   }
-echo '<b>' . $retval . "</b><hr>";
   return $retval;
 }
 

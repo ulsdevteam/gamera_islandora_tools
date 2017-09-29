@@ -47,7 +47,7 @@ define('DEBUG_MODE', FALSE);
 define('EAD_FOLDER', '/usr/local/src/HSWP-EAD/new');
 define('MARC_FOLDER', '/usr/local/src/HSWP-MARC');
 define('MARC_DERIVED_FOLDER', '/usr/local/src/HSWP-MARC/Derived');
-define('MEMBEROFSITE_NAMESPACE', variable_get('upitt_islandora_memberofsite_namespace'));
+define('MEMBEROFSITE_NAMESPACE', variable_get('islandora_memberofsite_namespace', 'http://digital.library.pitt.edu/ontology/relations#'));
 
 // XML Transformations
 define('TRANSFORM_STYLESHEET', dirname(__FILE__).'/xsl/MARC21slim2MODS3-5.xsl');
