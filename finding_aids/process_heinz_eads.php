@@ -44,8 +44,8 @@ $tag099 = array('mss1087.xml' => array('a' => '1087', 'b' => 'MSS'),
 
 define('DEBUG_MODE', FALSE);
 
-define('EAD_FOLDER', '/usr/local/src/HSWP-EAD/new');
-define('MARC_FOLDER', '/usr/local/src/HSWP-MARC');
+define('EAD_FOLDER', '/usr/local/src/HSWP-EAD/feb21');
+define('MARC_FOLDER', '/usr/local/src/HSWP-MARC/feb21');
 define('MARC_DERIVED_FOLDER', '/usr/local/src/HSWP-MARC/Derived');
 define('MEMBEROFSITE_NAMESPACE', variable_get('islandora_memberofsite_namespace', 'http://digital.library.pitt.edu/ontology/relations#'));
 
@@ -104,12 +104,16 @@ foreach ($marcs as $index => $marc_filename) {
   $uc_marcs[$index] = strtoupper($marc_filename);
 }
 
-$marc_file = MARC_FOLDER . '/marc_export.xml';
+echo print_r($ead_files, true);
+
+$marc_file = '/usr/local/src/HSWP-MARC/export_12102017.marc.xml'; // '/marc_export.xml';
 // echo "<h1>" . $marc_file . "</h1>";
-$marc_DOM = new DOMDocument();
-if (!@$marc_DOM->load($marc_file)) {
-  return 'ERROR: MARC did not load for this file : ' . $marc_file;
-}
+/*
+#$marc_DOM = new DOMDocument();
+#if (!@$marc_DOM->load($marc_file)) {
+#  return 'ERROR: MARC did not load for this file : ' . $marc_file;
+#}
+*/
 
 // $pids = array('pitt:US-PPiU-ffal002','pitt:US-PPiU-ffal001','pitt:US-PPiU-ais199616','pitt:US-PPiU-ais200619b','pitt:US-PPiU-ais201506');
 $skip_eads = array();
@@ -147,18 +151,30 @@ foreach ($ead_files as $idx => $ead) {
     $marc_query2 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="u"]["' . $u_hack_ead_id . '" = substring(., string-length(.)-string-length("' . $u_hack_ead_id . '")+1)]]';
     $marc_query3 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="3"]["' . $l_hack_ead_id . '" = substring(., string-length(.)-string-length("' . $l_hack_ead_id . '")+1)]]';
     $marc_query4 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="u"]["' . $l2_hack_ead_id . '" = substring(., string-length(.)-string-length("' . $l2_hack_ead_id . '")+1)]]';
+    $marc_query5 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="u"]["' . $hack_ead_id . '/viewer" = substring(., string-length(.)-string-length("' . $hack_ead_id . '/viewer")+1)]]';
+    $marc_query6 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="u"]["' . $u_hack_ead_id . '/viewer" = substring(., string-length(.)-string-length("' . $u_hack_ead_id . '/viewer")+1)]]';
+    $marc_query7 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="3"]["' . $l_hack_ead_id . '/viewer" = substring(., string-length(.)-string-length("' . $l_hack_ead_id . '/viewer")+1)]]';
+    $marc_query8 = '/marc:collection/marc:record[marc:datafield[@tag="856"]/marc:subfield[@code="u"]["' . $l2_hack_ead_id . '/viewer" = substring(., string-length(.)-string-length("' . $l2_hack_ead_id . '/viewer")+1)]]';
+
 
     // Look in the tag 099 for TWO separate values
     $marc_099_query_a = '/marc:collection/marc:record[marc:datafield[@tag="099"]/marc:subfield[text() = "' . $tag099[$ead]['a'] . '"] and marc:datafield[@tag="099"]/marc:subfield[text() = "' . $tag099[$ead]['b'] . '"]]';
 
-    //  echo "<hr><b>" . $ead_id ." ... [" . $hack_ead_id . "]</b><br>";
-    if ($saved_marc_xml = _save_marc($marc_query, $marc_DOM, $marc_filename, $marc_query2, $marc_query3, $marc_query4, $marc_099_query_a)) {
+    $marc_DOM = new DOMDocument();
+    if (!@$marc_DOM->load(MARC_FOLDER . '/' . $marc_filename)) {
+      echo '<b style="color:red">ERROR: MARC did not load for this file : ' .  MARC_FOLDER . '/' . $marc_filename . "</b><hr>";
+      // need to just update the EAD for this one
+      $s0 = '<a href="http://gamera.library.pitt.edu/islandora/object/pitt:' . $ead_id . '/manage/datastreams">UPDATE EAD HERE</a><br>';
+    }
+    else {
+     //  echo "<hr><b>" . $ead_id ." ... [" . $hack_ead_id . "]</b><br>";
+     if ($saved_marc_xml = _save_marc($marc_query, $marc_DOM, $marc_filename, $marc_query2, $marc_query3, $marc_query4, $marc_099_query_a, $marc_query5, $marc_query6, $marc_query7, $marc_query8)) {
       $marc = $marc_filename;
       $lines_good[] = $s2;
       //  $lines_good[] = 'query = ' . $marc_query;
       $s0 .= 'MARC found for EAD : ' . $ead_id . ' (' . $saved_marc_xml . ')';
       $count_good++;
-    } else {
+     } else {
       // Look for the matching MARC file in the MARC_FOLDER.  Due to case sensitive filenames, there were some MARC that did not match
       // the filenames based on the EAD name.  Set up the initial MARC filename using the "-ead" conversion to "-marc".
       $AT_marc_filename = MARC_FOLDER . '/' . $marc_filename;
@@ -168,10 +184,14 @@ foreach ($ead_files as $idx => $ead) {
       if (count($marc_keys) == 1) {
         $AT_marc_filename = MARC_FOLDER . '/' . $marcs[$marc_keys[0]];
       }
-
       if (file_exists($AT_marc_filename)) {
         $s0 .= 'found matching MARC by filename : ' . $AT_marc_filename . ' ';
-        $marc = (copy($AT_marc_filename, MARC_FOLDER . '/' . $marc_filename)) ? $marc_filename : NULL;
+        if ($AT_marc_filename == MARC_FOLDER . '/' . $marc_filename) {
+          $marc = $marc_filename;
+        }
+        else {
+          $marc = (copy($AT_marc_filename, MARC_FOLDER . '/' . $marc_filename)) ? $marc_filename : NULL;
+        }
         $lines_good[] = $s2;
         $s0 .= '_save_marc did not find anything for the query ' . $marc_query . ' but found matching MARC file : ' . $marc_filename . ' ';
         $count_good++;
@@ -182,6 +202,7 @@ foreach ($ead_files as $idx => $ead) {
         $s0 .= '_save_marc did not find anything for the query ' . $marc_query . ' AND COULD NOT FIND matching MARC by filename : ' . $AT_marc_filename . ' ';
         $count_bad++;
       }
+     }
     }
     _echo($s2."\n" . '<a href="http://gamera.library.pitt.edu/islandora/object/pitt:' . $ead_id . '/manage/datastreams">link</a>');
     $ead_marc = array('ead' => $ead,
@@ -220,14 +241,14 @@ die(implode('
 
 function process_finding_aid_xml($ead_id, $ead_marc, $repository, $solr) {
   $ead = EAD_FOLDER . '/' . $ead_marc['ead'];
-  $marc = MARC_DERIVED_FOLDER . '/' . $ead_marc['marc'];
+  $marc = MARC_FOLDER . '/' . $ead_marc['marc'];
 
   // Schema check
   $doc0 = new DOMDocument();
 //   echo "checking schema of ead XML";
   $doc0->load($ead);
 
-  if (!@$doc0->load($ead) || (!@$doc0->schemaValidate(dirname(__FILE__) .'/schema/ead.xsd'))) {
+  if (!@$doc0->load($ead)) { // || (!@$doc0->schemaValidate(dirname(__FILE__) .'/schema/ead.xsd'))) {
     return 'ERROR: Schema did not validate for this file : ' . $ead . "\n";
   }
   echo " - schema good<br>";
@@ -422,8 +443,8 @@ function _get_ead_id($ead) {
   return $nodeValue;
 }
 
-function _save_marc($query, $marc_DOM, $marc_filename, $query2, $query3, $query4, $marc_099_query_a) {
-  echo $query ."<br>" . $marc_099_query_a . "<br>" . $query2 . "<br>" . $query3 . "<br>" . $query4 . "<br><hr>";
+function _save_marc($query, $marc_DOM, $marc_filename, $query2, $query3, $query4, $marc_099_query_a, $query5, $query6, $query7, $query8) {
+  echo $query ."<br>" . $marc_099_query_a . "<br>" . $query2 . "<br>" . $query3 . "<br>" . $query4 . "<br>" . $query5 . "<br>" . $query6 . "<br>" . $query7 . "<br>" . $query8 . "<br><hr>";
   $xpath = new DOMXPath($marc_DOM);
   $results = $xpath->query($query);
   $retval = FALSE;
@@ -460,6 +481,35 @@ function _save_marc($query, $marc_DOM, $marc_filename, $query2, $query3, $query4
       $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
     }
   }
+  if (!$retval) {
+    $results = $xpath->query($query5);
+    foreach ($results as $result) {
+      $retval = TRUE;
+      $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
+    }
+  }
+  if (!$retval) {
+    $results = $xpath->query($query6);
+    foreach ($results as $result) {
+      $retval = TRUE;
+      $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
+    }
+  }
+  if (!$retval) {
+    $results = $xpath->query($query7);
+    foreach ($results as $result) {
+      $retval = TRUE;
+      $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
+    }
+  }
+  if (!$retval) {
+    $results = $xpath->query($query8);
+    foreach ($results as $result) {
+      $retval = TRUE;
+      $retval = file_put_contents(MARC_DERIVED_FOLDER . '/' . $marc_filename, _wrap($result));
+    }
+  }
+
   return $retval;
 }
 

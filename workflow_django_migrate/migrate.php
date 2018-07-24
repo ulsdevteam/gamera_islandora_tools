@@ -7,12 +7,27 @@
 //\//\
 //\//\/
 
+// Load our own Library.
+require_once(dirname(__FILE__) .'/../uls-tuque-lib.php');
+
+$config['db'] = get_config_value('mysql' ,'database');
+$config['username'] = get_config_value('mysql','username');
+$config['password'] = get_config_value('mysql','password');
+$config['host'] = get_config_value('mysql', 'host');
+
 set_time_limit(0);
 // backup();
 
 /**
  * Call from http://gamera.library.pitt.edu/devel/php with the following line of code
+ *
+ *   module_load_include('module', 'upitt_workflow', 'upitt_workflow');
+ *   // Optionally set a date for updating records after the date_start value
+ *   // if not set, the entire set of tables will be REPLACED.
+ *   global $date_start;
+ *   $date_start = '2018/01/20';  
  *   include_once('/usr/local/src/islandora_tools/workflow_django_migrate/migrate.php');
+ *
  *
  * BEFORE running this script, be sure that the workflow system is not being actively being used.
  * Backup the bigfoot database to a file using :
@@ -47,6 +62,11 @@ core_workflow_sequence                     workflow_sequence                 YES
 core_workflow_sequence_actions             workflow_sequence_actions
 */
 
+global $date_start;
+_get_dump_renametable_run_new('core_batch_item', 'batch_item');
+_get_dump_renametable_run_new('core_item_file', 'item_file');
+_get_dump_renametable_run_new('core_item', 'item');
+
 
 // test this function 
 _get_dump_renametable_run_new('core_transaction', 'transaction');
@@ -68,7 +88,9 @@ _get_wflocal_local_batch_records(' LIMIT 0,200');
 _get_wflocal_local_batch_records(' LIMIT 200,200');
 _get_wflocal_local_batch_records(' LIMIT 400,200');
 _get_wflocal_local_batch_records(' LIMIT 600,200');
-_get_wflocal_local_batch_records(' LIMIT 700,200');
+_get_wflocal_local_batch_records(' LIMIT 800,200');
+_get_wflocal_local_batch_records(' LIMIT 1000,200');
+
 
 _create_batch_collections();
 
@@ -86,7 +108,8 @@ _get_dump_renametable_run_new('wflocal_fedora_site', 'wflocal_fedora_site');
 die();
 
 function backup() {
-  $command = 'mysqldump -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow > /home/bgilling/workflow_django.sql';
+  global $config;
+  $command = 'mysqldump -u' . $config['username'] . ' -p' . $config['password'] . ' -h ' . $config['host'] . ' islandora_workflow > /home/bgilling/workflow_django.sql';
   exec($command, $output, $return_var);
   echo "<div style='color:" . (($return_var > 0) ? 'green' : 'red'). "'>dump sql run '" . $command . "'.</div>";
   if ($return_var) {
@@ -95,9 +118,10 @@ function backup() {
 }
 
 function _run_sql($filename) {
+  global $config;
   $createSql = '/usr/local/src/islandora_tools/workflow_django_migrate/sqls/' . $filename;
   if (file_exists($createSql)) {
-    $command = 'mysql -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow < ' . $createSql;
+    $command = 'mysql -u' . $config['username'] . ' -p' . $config['password'] . ' -h ' . $config['host'] . ' islandora_workflow < ' . $createSql;
     exec($command, $output, $return_var);
     echo "<div style='color:" . (($return_var > 0) ? 'green' : 'red'). "'>CREATE TABLE sql run '" . $createSql . "'.</div>";
     if ($return_var) {
@@ -107,9 +131,10 @@ function _run_sql($filename) {
 }
 
 function _create_batch_collections() {
+  global $config;
   $createSql = '/usr/local/src/islandora_tools/workflow_django_migrate/sqls/batch_collections.sql';
   if (file_exists($createSql)) {
-    $command = 'mysql -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow < ' . $createSql;
+    $command = 'mysql -u' . $config['username'] . ' -p' . $config['password'] . ' -h ' . $config['host'] . ' islandora_workflow < ' . $createSql;
     exec($command, $output, $return_var);
     echo "<div style='color:" . (($return_var > 0) ? 'green' : 'red'). "'>CREATE TABLE sql run '" . $createSql . "'.</div>";
     if ($return_var) {
@@ -119,18 +144,40 @@ function _create_batch_collections() {
 }
 
 function _get_dump_renametable_run_new($legacy_tablename, $new_tablename) {
+  global $config;
+  global $date_start;
   $dmp_filename = '/tmp/' . $legacy_tablename . '_bigfoot.sql';
   echo "<b>clearing local table $new_tablename</b><br />";
-  _truncate($new_tablename);
+//  _truncate($new_tablename);
 
   // this is going to perform 3 steps
   //   1) get mysql_dump from bigfoot for this tablename
-  $command = 'mysqldump -uislandora -pulsislandora -h bigfoot.library.pitt.edu --opt --lock-tables=false workflow_django ' . $legacy_tablename . ' > ' . $dmp_filename;
+  $date_constrained_tables = array('item', 'item_file', 'batch_item');
+  if ($date_start && !(array_search($new_tablename, $date_constrained_tables) === FALSE) ) {
+    // if there is a date set, we need to join the table to the batch table for constraining the date AND need to 
+    // remove the DROP TABLE/CREATE TABLE output so that this generates *ONLY* INSERT statements
+    if ($new_tablename == 'batch_item') {
+      $command = 'mysqldump -uislandora -pulsislandora -h bigfoot.library.pitt.edu --opt --lock-tables=false workflow_django ' . $legacy_tablename .
+         ' --where="batch_id IN (SELECT id FROM core_batch cb ' .
+         'WHERE cb.date > \'' . $date_start . '\')" ' .
+         '--no-create-info --skip-add-drop-table > ' . $dmp_filename;
+    }
+    else {
+      $table_id_fieldname = ($new_tablename == 'item') ? 'id' : 'item_id';
+      $command = 'mysqldump -uislandora -pulsislandora -h bigfoot.library.pitt.edu --opt --lock-tables=false workflow_django ' . $legacy_tablename . 
+         ' --where="' . $table_id_fieldname . ' IN (SELECT cbi.item_id as id FROM core_batch cb ' . 
+         'JOIN core_batch_item cbi ON (cbi.batch_id = cb.id) WHERE cb.date > \'' . $date_start . '\')" ' .
+         '--no-create-info --skip-add-drop-table > ' . $dmp_filename;
+    }
+  }
+  else {
+    $command = 'mysqldump -uislandora -pulsislandora -h bigfoot.library.pitt.edu --opt --lock-tables=false workflow_django ' . $legacy_tablename . ' > ' . $dmp_filename;
+  }
 
   echo '<code style="color:#269">' . _safe($command) . '</code><br />';
-
   echo "<b>exporting table $legacy_tablename</b><br />";
   exec($command, $output, $return_var);
+die($command);
 
   if (count($output) > 0) {
     echo "<pre>" . print_r($output, true) ."</pre>";
@@ -161,14 +208,14 @@ function _get_dump_renametable_run_new($legacy_tablename, $new_tablename) {
 
   echo "<b>importing local records</b><br />";
   //   3) execute the resultant sql file
-  $command = 'mysql -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow < ' . str_replace("core_", "", $dmp_filename);
+  $command = 'mysql -u' . $config['username'] . ' -p' . $config['password'] . ' -h ' . $config['host']. ' islandora_workflow < ' . str_replace("core_", "", $dmp_filename);
   echo '<code style="color:#269">' . _safe($command) . '</code><br />';
   exec($command);
 
   // run any Alter SQL for this table
   $alterSql = '/usr/local/src/islandora_tools/workflow_django_migrate/sqls/' . str_replace(array("core_", "/tmp/", "_bigfoot"), "", $dmp_filename);
   if (file_exists($alterSql)) {   
-    $command = 'mysql -udrupal -pFdFLpjfmDHjlvKPQ76knXmgj -h pa-db.library.pitt.edu islandora_workflow < ' . $alterSql;
+    $command = 'mysql -u' . $config['username'] . ' -p' . $config['password'] . ' -h ' . $config['host'] . ' islandora_workflow < ' . $alterSql;
     exec($command, $output, $return_var);
     echo "<div style='color:" . (($return_var > 0) ? 'green' : 'red'). "'>ALTER sql run '" . $alterSql . "'.</div>";
     if ($return_var) {
@@ -179,7 +226,8 @@ function _get_dump_renametable_run_new($legacy_tablename, $new_tablename) {
 }
 
 function _safe($in) {
-  return str_replace(array('FdFLpjfmDHjlvKPQ76knXmgj', 'ulsislandora'), '*************', $in);
+  global $config;
+  return str_replace(array($config['password'], 'ulsislandora'), '*************', $in);
 }
 
 /**

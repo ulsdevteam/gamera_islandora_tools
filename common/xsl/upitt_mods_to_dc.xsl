@@ -289,13 +289,14 @@
         </xsl:if>
     </xsl:template>
 
-    <xsl:template match="mods:physicalDescription">
+<!--MRB removed because data was not in sync for DPLA/PA Digital Harvest -->
+<!--    <xsl:template match="mods:physicalDescription">
         <xsl:for-each select="mods:extent | mods:form | mods:internetMediaType">
             <dc:format>
                 <xsl:value-of select="."/>
             </dc:format>
         </xsl:for-each>
-    </xsl:template>
+    </xsl:template>-->
 
     <xsl:template match="mods:identifier">
         <dc:identifier>

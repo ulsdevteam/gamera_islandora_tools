@@ -1,0 +1,18 @@
+[tuque]
+path_to_tuque = /var/www/html/drupal7/sites/all/libraries/tuque/
+
+[fedora]
+url = FEDORA_URL_HERE
+username = FEDORA_USERNAME_HERE
+password = FEDORA_PASSWORD_HERE
+
+[solr]
+url = SOLR_URL_HERE
+proxy_username = SOLR_PROXY_USERNAME_HERE
+proxy_password = SOLR_PROXY_PASSWORD_HERE
+
+[mysql]
+database = MYSQL_DATABASE_HERE
+username = MYSQL_USERNAME_HERE
+password = MYSQL_PASSWORD_HERE
+host = MYSQL_HOST_HERE
