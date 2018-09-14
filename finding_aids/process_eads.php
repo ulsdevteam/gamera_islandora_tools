@@ -11,11 +11,11 @@ error_log('started ' . date('H:i:s'));
 
 $skip_eads = array(''); // ZZ AACCWP-ead.xml');
 
-define('EAD_FILE_ENDSWITH', '-ead.xml');
-define('MARC_FILE_ENDSWITH', '-marc.xml');
+define('EAD_FILE_ENDSWITH', '__ead.xml');
+define('MARC_FILE_ENDSWITH', '__marc21.xml');
 
 define('EAD_FOLDER', '/usr/local/src/EAD-Delivery'); 
-define('MARC_DERIVED_FOLDER', '/usr/local/src/MARC/Derived');
+define('MARC_DERIVED_FOLDER', '/usr/local/src/MARC');
 define('MARC_FOLDER', '/usr/local/src/MARC'); 
 define('MEMBEROFSITE_NAMESPACE', variable_get('islandora_memberofsite_namespace', 'http://digital.library.pitt.edu/ontology/relations#'));
 
@@ -64,7 +64,7 @@ $s = ''; // for debug output
 $lines_good = $lines_bad = array();
 $count_good = $count_bad = 0;
 $ead_files = _get_files(EAD_FOLDER, EAD_FILE_ENDSWITH);
-$marcs = _get_files(MARC_DERIVED_FOLDER, MARC_FILE_ENDSWITH);
+$marcs = _get_files(MARC_FOLDER, MARC_FILE_ENDSWITH);
 
 // Make this array all uppercase -- later the uppercase EAD filename will be searched for in this array
 // and if it returns ONLY one key when searched, we can assume that the MARC filename is 100% match.
@@ -72,18 +72,22 @@ foreach ($marcs as $index => $marc_filename) {
   $uc_marcs[$index] = strtoupper($marc_filename);
 }
 
-$marc_file = MARC_DERIVED_FOLDER . '/2017_01_12_FindingAidsComplete.xml'; //FindingAidsCorrected.xml'; // _get_files(MARC_FOLDER, '-marc.xml');
-echo "<h1>" . $marc_file . "</h1>";
+// $marc_file = MARC_DERIVED_FOLDER . '/2017_01_12_FindingAidsComplete.xml'; //FindingAidsCorrected.xml'; // _get_files(MARC_FOLDER, '-marc.xml');
+$marc_file = _get_files(MARC_FOLDER, MARC_FILE_ENDSWITH);
+
+echo "<b>found MARC files:</b><pre>" . print_r($marc_file, true) . "</pre>";
 sort($ead_files);
 $marc_DOM = new DOMDocument();
-if (!@$marc_DOM->load($marc_file)) {
+/*if (!@$marc_DOM->load($marc_file)) {
   return 'ERROR: MARC did not load for this file : ' . $marc_file;
 }
-
+*/
 // $pids = array('pitt:US-PPiU-ffal002','pitt:US-PPiU-ffal001','pitt:US-PPiU-ais199616','pitt:US-PPiU-ais200619b','pitt:US-PPiU-ais201506');
 
 $missing = $finding_aids = array();
 $i = 0;
+echo "<b>found EAD files:</b><pre>" . print_r($ead_files, true) . "</pre>";
+
 foreach ($ead_files as $idx => $ead) {
 echo $ead."<hr>";
  if (array_search($ead, $skip_eads) === FALSE) {

@@ -1,4 +1,4 @@
-ALTER TABLE `batch`
+ALTER TABLE `batch_temp`
         CHANGE COLUMN `id` `batch_id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT FIRST,
 	CHANGE COLUMN `name` `batch_external_id` VARCHAR(50) NOT NULL DEFAULT '0' AFTER `batch_id`,
 	CHANGE COLUMN `description` `batch_description` LONGTEXT NOT NULL AFTER `batch_external_id`,
@@ -6,7 +6,7 @@ ALTER TABLE `batch`
 	CHANGE COLUMN `property_owner_id` `batch_property_owner_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' AFTER `batch_external_id`,
 	CHANGE COLUMN `sequence_id` `batch_sequence_id` INT(11) UNSIGNED NOT NULL DEFAULT '0' AFTER `batch_property_owner_id`,
 	CHANGE COLUMN `collection_id` `mapto_collections` VARCHAR(255) AFTER `batch_property_owner_id`;
-ALTER TABLE `batch`
+ALTER TABLE `batch_temp`
    ADD COLUMN `nid` INT(11) UNSIGNED NOT NULL DEFAULT '0',
    ADD COLUMN `batch_default_perm_notes` LONGTEXT NOT NULL,
    ADD COLUMN `batch_default_CR_holder` LONGTEXT NOT NULL,
@@ -42,4 +42,4 @@ ALTER TABLE `batch`
    ADD COLUMN `lastmod` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `file`,
    ADD COLUMN `user` VARCHAR(50) NOT NULL AFTER `lastmod`,
    ADD COLUMN `batch_host` VARCHAR(255) NOT NULL DEFAULT '';
-UPDATE `batch` set `user` = 'migrate script';
+UPDATE `batch_temp` set `user` = 'migrate script';
