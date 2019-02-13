@@ -3,7 +3,7 @@
 // Load our own Library.
 require_once(dirname(__FILE__) .'/../uls-tuque-lib.php');
 
-global $config; 
+global $config;
 global $batch_name;
 global $date_start;
 
@@ -26,10 +26,10 @@ set_time_limit(0);
  *   // Optionally set a date for updating records after the date_start value
  *   // if not set, the entire set of tables will be REPLACED.
  *   global $date_start;
- *   $date_start = '2018/01/20';  
+ *   $date_start = '2018/01/20';
  *   include_once('/usr/local/src/islandora_tools/workflow_django_migrate/migrate.php');
  *
- * Alternatively, the value for a single batch name can be provided which should import ONLY 
+ * Alternatively, the value for a single batch name can be provided which should import ONLY
  * that batch and its related records.  This would skip all of the setup tables.
  *   module_load_include('module', 'upitt_workflow', 'upitt_workflow');
  *   // Optionally set a date for updating records after the date_start value
@@ -42,7 +42,6 @@ set_time_limit(0);
  * BEFORE running this script, be sure that the workflow system is not being actively being used.
  * The code will create a backup of the workflow_django database by running :
  *   $ mysqldump -uislandora -p -h bigfoot.library.pitt.edu workflow_django > ~/workflow_django.sql
- * 
  *
  * This will use the dev.gamera instance which will have a second database configured within the settings.php.
  * Production Gamera install will not have this change to settings.php for now because this is just connectivity
@@ -52,7 +51,7 @@ set_time_limit(0);
 // both the mysql databases are accessable fia the upitt_workflow_get_databaselink function calls in upitt_workflow.
 // module_load_include('module', 'upitt_workflow', 'upitt_workflow');
 
-/* 
+/*
 legacy table                     transf?   new                               lookup table?
 -----------------------------------------------------------------------------------------------
 core_action                                action
