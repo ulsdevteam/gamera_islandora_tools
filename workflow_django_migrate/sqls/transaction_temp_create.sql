@@ -6,5 +6,5 @@ CREATE TABLE `transaction_temp` (
   `user_id` int(11) NOT NULL default '0',
   `description` longtext NOT NULL,
   `timestamp` datetime NOT NULL default '0000-00-00 00:00:00',
-  PRIMARY KEY  (`id`),
+  PRIMARY KEY  (`id`)
 );

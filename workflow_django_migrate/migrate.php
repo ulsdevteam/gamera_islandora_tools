@@ -40,7 +40,7 @@ set_time_limit(0);
  *
  *
  * BEFORE running this script, be sure that the workflow system is not being actively being used.
- * Backup the bigfoot database to a file using :
+ * The code will create a backup of the workflow_django database by running :
  *   $ mysqldump -uislandora -p -h bigfoot.library.pitt.edu workflow_django > ~/workflow_django.sql
  * 
  *
@@ -100,7 +100,6 @@ else {
   _get_dump_renametable_run_new('core_batch_item', 'batch_item'); 
 }
 
-
 if (!$batch_name) {
   // core_item_type
   _get_dump_renametable_run_new('core_batch', 'batch');
@@ -135,6 +134,7 @@ else {
   // Create the batch_temp and transaction_temp tables
   _run_sql('batch_temp_create.sql');
   _run_sql('transaction_temp_create.sql');
+  _run_sql('batch_temp.sql');
 
   // This populates the batch_temp table
   _get_dump_renametable_run_new('core_batch', 'batch_temp');
@@ -144,7 +144,7 @@ else {
   _get_dump_renametable_run_new('core_transaction', 'transaction_temp');
 
   // This will update the batch_temp structure so that it is the same as the target `batch` table
-   _run_sql('batch_temp.sql');
+//  _run_sql('batch_temp.sql');
   _run_sql('transaction_temp.sql');
   _copy_from_batch_temp();
   _copy_from_transaction_temp();
@@ -162,8 +162,8 @@ function _copy_from_batch_temp() {
                 'Whole query: ' . $sql;
     die($message);
   }
-  $drop = 'DROP TABLE `batch_temp`';
-  mysqli_query($link_new, $drop);
+//   $drop = 'DROP TABLE `batch_temp`';
+//   mysqli_query($link_new, $drop);
 }
 
 function _copy_from_transaction_temp() {
@@ -176,8 +176,9 @@ function _copy_from_transaction_temp() {
                 'Whole query: ' . $sql;
     die($message);
   }
-  $drop = 'DROP TABLE `transaction_temp`';
-  mysqli_query($link_new, $drop);
+echo "<h1>ok???????????????????????????????????????????????????????</h1>";
+//  $drop = 'DROP TABLE `transaction_temp`';
+//  mysqli_query($link_new, $drop);
 }
 
 function _delete_all_related_batch_records() {
@@ -259,6 +260,9 @@ function _run_sql($filename) {
     if ($return_var) {
       echo '<code style="color:#269">' . _safe($command) . '</code><br />';
     }
+  }
+  else {
+    echo "<h1>SQL file does not exist! : $filename</h1>";
   }
 }
 
