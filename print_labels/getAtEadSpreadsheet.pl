@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl 
+#!/usr/local/bin/perl
 
 use CGI;
 use Spreadsheet::WriteExcel;
@@ -24,14 +24,14 @@ print "\n";
 my $workbook = Spreadsheet::WriteExcel->new("-");
 my $sheet1 = $workbook->add_worksheet();
 my $format = $workbook->add_format(num_format => '@');
-`perl -pi -e 's,<ead [^>]*?>,<ead xmlns:ns2="http://www.w3.org/1999/xlink">,' $tmpfilename`; 
+`perl -pi -e 's,<ead [^>]*?>,<ead xmlns:xlink="http://www.w3.org/1999/xlink">,' $tmpfilename`;
 my $i = 0;
 my @items = `java -jar /usr/local/dlxs/prep/bin/saxon/saxon8.jar -s $tmpfilename recurse.xsl`;
 
 foreach my $row (@items)
 {
 	my @fields = split /\t/, $row;
-	my $j = 0;	
+	my $j = 0;
 	foreach $field (@fields) {
 		$sheet1->write_string("$i", "$j", "$field");
 		$j++;

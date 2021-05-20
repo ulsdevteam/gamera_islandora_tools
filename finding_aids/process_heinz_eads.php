@@ -123,7 +123,7 @@ foreach ($ead_files as $idx => $ead) {
  _fix_rewrite_ead($ead);
  if (array_search($ead, $skip_eads) === FALSE) {
   $s0 = '';
-  // For heinz, just use the ead name for the filename to check for the marc (in different folders).  There was no 
+  // For heinz, just use the ead name for the filename to check for the marc (in different folders).  There was no
   // established filenaming pattern for MARC / EAD like our files being named {ID}-marc.xml and {ID}-ead.xml.
   $marc_filename = $ead;
 
@@ -141,7 +141,7 @@ foreach ($ead_files as $idx => $ead) {
 
     // since this is not xpath 2.0, need to use string-lengths to fake the "ends-with"
     $hack_ead_id = ($ead_id == 'US-QQS-mss579') ? 'US-QQS-MSS579 ' : $ead_id;
-    if ($ead_id == 'US-QQS-MSS 895') { 
+    if ($ead_id == 'US-QQS-MSS 895') {
       $hack_ead_id = 'US-QQS-MSS895';
     }
     $u_hack_ead_id = u_hack($hack_ead_id);
@@ -694,10 +694,10 @@ function _fix_rewrite_ead($ead) {
 
   $fixed_contents = str_replace(' "file:/S:/LibraryArchives/archives/Finding%20Aids%20EAD/DTD/ead2002.dtd"', ' "http://www.loc.gov/ead/ead.xsd"', $contents);
 
-  if (strstr($fixed_contents, 'xmlns:ns2="http://www.w3.org/1999/xlink"') == '') {
-    $fixed_contents = str_replace('<ead ', 
-//                                   '<ead xmlns:ns2="http://www.w3.org/1999/xlink" xmlns="urn:isbn:1-931666-22-9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 http://www.loc.gov/ead/ead.xsd" ',
-                                  '<ead xmlns:ns2="http://www.w3.org/1999/xlink" xmlns="urn:isbn:1-931666-22-9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/ead/ead.xsd" ',
+  if (strstr($fixed_contents, 'xmlns:xlink="http://www.w3.org/1999/xlink"') == '') {
+    $fixed_contents = str_replace('<ead ',
+//                                   '<ead xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="urn:isbn:1-931666-22-9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:isbn:1-931666-22-9 http://www.loc.gov/ead/ead.xsd" ',
+                                  '<ead xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="urn:isbn:1-931666-22-9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.loc.gov/ead/ead.xsd" ',
                                   $fixed_contents);
   }
 
